@@ -1,53 +1,58 @@
-# Redslip: archive delivery triage
+# Redslip
 
-**Track: Grafana** | Agentic Cinema: The Blockbuster Hackathon. Partner wiring: `ARCHITECTURE.md`.
+**The ledger of rejected masters.** Point Redslip at a film archive and it tells you,
+with machine-measured numbers, which titles a streamer would reject today, in what order
+to touch them, and which ones a machine can fix without a person in the room.
 
 Live: https://vault-387894104564.us-central1.run.app
 Repo: https://github.com/passionate-dev7/vault
 
 ---
 
-## The incident
+## The problem it solves
 
-A distributor uploads a finished film to a streamer. Eleven days later it comes back
-rejected: integrated loudness out of spec, subtitle cues over the reading-speed limit, a
-black segment flagged as damage. Nobody watched the film wrong. The numbers were simply
-never measured before delivery, and the re-deliver cycle costs weeks.
+One rejected master is an incident. A catalog of them is a pattern, and the pattern is
+what nobody in delivery can see, because each rejection arrives as its own email, to its
+own person, weeks apart from the last one.
 
-Redslip prevents that at catalog scale. Point it at a film archive and it tells you, with
-machine-measured numbers, which titles would fail delivery today, in what order to touch
-them, and which ones a machine can fix without a human in the room.
+A distributor uploads a finished film to a streamer. Days later it comes back rejected:
+integrated loudness out of spec, subtitle cues over the reading-speed limit, a black
+segment flagged as damage. Nobody watched the film wrong. The numbers were simply never
+measured before delivery, and the re-deliver cycle costs weeks.
 
-**The user:** the catalog or mastering QC lead at an indie distributor or film archive, the
-person who decides which titles get mix-stage time this week. Today they either pay per
-seat for Telestream Vantage or Venera Pulsar, or they listen to masters by ear.
+Redslip holds the whole catalog as one queryable ledger. Which titles ship, which need a
+person, which a machine can correct unattended.
 
-**Nobody has run this in production yet.** It runs on 20 public-domain titles from
-archive.org, measured live, and every number below can be reproduced by a stranger with
-ffmpeg and no access to this machine.
+**Who it is for:** the catalog or mastering QC lead at an indie distributor or film
+archive, the person who decides which titles get mix-stage time this week. The
+alternative today is a per-seat licence for Telestream Vantage or Venera Pulsar, or
+listening to masters by ear.
+
+It currently runs against 20 public-domain titles from archive.org, measured live. Every
+number below can be reproduced by a stranger with ffmpeg and no access to this machine.
 
 ---
 
 ## Reproduce any number on the page
 
-The interface prints the exact command next to each measurement. It is not a paraphrase of
-what the code does, it is the command:
+The interface prints the exact command next to each measurement. It is not a paraphrase
+of what the code does, it is the command, generated from the source URL recorded in
+`vault.sources`:
 
 ```bash
 ffmpeg -hide_banner -nostats -t 120 \
-  -i "https://archive.org/download/NightTide16x9CorrectedAudio/NightTide_512kb.mp4" \
+  -i "https://archive.org/download/fugitive_valley/fugitive_valley_512kb.mp4" \
   -af ebur128 -f null -
 ```
 
 ```
-Integrated loudness:
-  I:         -17.4 LUFS
-  Threshold: -27.7 LUFS
+  Integrated loudness:
+    I:         -37.2 LUFS
+    Threshold: -47.3 LUFS
 ```
 
--17.4 LUFS against the EBU R128 target of -23.0 is 5.6 LU out of spec, which is what the
-slip for that title says. `vault.sources` stores the URL that was measured for every title,
-so the command is generated from the recorded source rather than assembled by hand.
+-37.2 LUFS against the EBU R128 target of -23.0 is 14.2 LU out of spec, which is what the
+slip for that title says.
 
 ---
 
@@ -64,44 +69,58 @@ so the command is generated from the recorded source rather than assembled by ha
 | Black segments | none at or over 2 seconds | `qc/measure.py` |
 | Frozen video | no freeze events | `qc/measure.py` |
 
-Subtitle checks run over the full subtitle track when a title ships one. None of the 20
-titles in the current scan carries an SRT, so the subtitle checks contribute zero findings
-to the numbers below. The code path is exercised by tests, not by this catalog.
-
 ---
 
 ## The current scan
 
 20 titles, 24,017 loudness sample rows, 100 spec findings, 29 defect events. 17 titles
-would be rejected today.
+would be rejected today: 11 into the batch lane, 6 to a person, 3 ready to ship.
 
-| Title | Integrated LUFS | LU from target | Verdict | Bay |
+| Title | Integrated LUFS | LU from target | Verdict | Lane |
 |---|---|---|---|---|
 | Fugitive Valley | -37.2 | 14.2 | FAIL | BATCH |
 | Outpost In Morocco | -15.8 | 7.2 | FAIL | BATCH |
+| quevadis | -16.5 | 6.5 | FAIL | BATCH |
 | Farewell to Arms, A | -16.5 | 6.5 | FAIL | BATCH |
-| Quo Vadis | -16.5 | 6.5 | FAIL | BATCH |
 | Romance on the Run | -16.9 | 6.1 | FAIL | BATCH |
 | Night Tide, corrected audio | -17.4 | 5.6 | FAIL | BATCH |
 | Follow Your Heart | -18.2 | 4.8 | FAIL | BATCH |
-| Framed | -20.1 | 2.9 | FAIL | HUMAN |
+| framed | -20.1 | 2.9 | FAIL | HUMAN |
+| Crimson Romance | -25.9 | 2.9 | FAIL | BATCH |
+| Rough Riding Ranger | -20.3 | 2.7 | FAIL | BATCH |
+| Fit for a King | -21.0 | 2.0 | FAIL | BATCH |
 | Vicki (1953) | -24.9 | 1.9 | FAIL | HUMAN |
+| The Shadow Strikes | -24.8 | 1.8 | FAIL | HUMAN |
+| Successful Failure | -24.5 | 1.5 | FAIL | HUMAN |
+| Song for Miss Julie, A | -21.5 | 1.5 | FAIL | BATCH |
 | Werewolf In A Girls' Dormitory | -22.0 | 1.0 | PASS | READY |
+| Night of the Living Dead (1968) | -24.0 | 1.0 | FAIL | HUMAN |
 | What Becomes Of The Children? | -23.9 | 0.9 | PASS | READY |
+| Niagara Falls | -22.3 | 0.7 | FAIL | HUMAN |
 | Night Of The Living Dead, 720p | -22.4 | 0.6 | PASS | READY |
 
 Three titles pass, which matters: a gate that fails everything is not measuring anything.
-The ordering is absolute distance from target in LU, so a title 7 LU too loud outranks one
-5 LU too quiet. Raw LUFS ordering would put every loud title at one end of the list and
-every quiet one at the other, which is not a severity order.
+The ordering is absolute distance from target in LU, so a title 7 LU too loud outranks
+one 5 LU too quiet. Raw LUFS ordering would put every loud title at one end of the list
+and every quiet one at the other, which is not a severity order.
+
+Failures by check, over the same scan:
+
+| Check | Titles failing |
+|---|---|
+| Integrated loudness, EBU R128 | 15 |
+| Integrated loudness, ATSC A/85 | 11 |
+| Black segments at or over 2 s | 5 |
+| Frozen video | 2 |
+| True peak ceiling | 0 |
 
 ---
 
 ## Why ClickHouse is load-bearing
 
-ffmpeg's `ebur128` filter emits a loudness reading every 100 milliseconds. That is about 10
-rows per second of content: a 90-minute feature is roughly 54,000 rows, and archive.org
-holds 28,423 public-domain titles.
+ffmpeg's `ebur128` filter emits a loudness reading every 100 milliseconds. That is about
+10 rows per second of content: a 90-minute feature is roughly 54,000 rows, and
+archive.org holds 28,423 public-domain titles.
 
 The interesting part is not the row count, it is which rows get read.
 
@@ -109,7 +128,28 @@ The interesting part is not the row count, it is which rows get read.
 `AggregatingMergeTree` keyed on `title_id`, kept current by a materialized view whose
 `GROUP BY` is the rollup's `ORDER BY`. Ingesting title 21 merges one part in; it does not
 rebuild the fleet. `vault.fleet` reads that rollup, one row per title, joined to the small
-findings table. `EXPLAIN indexes = 1` on the ranking query names `vault.findings` and
+findings table.
+
+Two query shapes, measured against ClickHouse Cloud and read from the server's own
+response summary rather than counted in Python:
+
+| Measure | Ranking the catalog | Percentiles over the stream |
+|---|---|---|
+| Rows read | 320 | 24,017 |
+| Bytes read | 11,372 | 120,680 |
+| Rows returned | 12 | 8 |
+| Elapsed | 16.5 ms | 5.5 ms |
+
+```bash
+source scripts/cloudenv.sh
+.venv/bin/python scripts/capture_query_cost.py   # writes docs/evidence/query-cost.txt
+```
+
+Ranking costs a number of rows proportional to how many titles exist, not to how much
+audio was measured. The percentile query is the one that pays for the stream, and it is
+the reason the percentiles are percentiles rather than a figure typed into a cell.
+
+`EXPLAIN indexes = 1` on the ranking query names `vault.findings` and
 `vault.title_loudness` and does not mention `vault.loudness_samples`, and there is a test
 that asserts exactly that. The plan itself is committed at
 [`docs/evidence/explain-ranking-plan.txt`](docs/evidence/explain-ranking-plan.txt),
@@ -118,40 +158,42 @@ proves `EXPLAIN` does name the samples table when a query genuinely reads it. Th
 server's refusal to write is committed the same way at
 [`docs/evidence/readonly-refusal.txt`](docs/evidence/readonly-refusal.txt): a DDL and a
 DML statement, both answered `Code 164 READONLY` by ClickHouse itself, with the archive
-unchanged either side. Both files carry the command that produced them, so a judge who
+unchanged either side. Both files carry the command that produced them, so anyone who
 cannot reach the Cloud database can still read what came back, and anyone who can reach
 it can re-run them with `.venv/bin/python scripts/capture_mcp_evidence.py`.
 
 **The sample stream exists for one job.** Opening a single title runs an `ASOF LEFT JOIN`
-from `vault.events` to `vault.loudness_samples`, stamping each defect with the short-term
-loudness at the instant it began. That is the join that separates a reel change from
-damage. Night Tide has black at 1.2s with short-term loudness of -120.7 dB, which is
-silence, so it is a reel change; and black at 5.3s at -42.0, which is programme audio
-running under a dark frame, so it wants a human. Same two rows, opposite dispositions, and
-only the point-in-time join tells them apart.
+from `vault.latest_events` to `vault.loudness_samples`, stamping each defect with the
+short-term loudness at the instant it began. That is the join that separates a reel
+change from damage. Night Tide has black at 1.17 s with short-term loudness of -120.7 dB,
+which is silence, so it is a reel change; and black at 5.33 s at -42.0 dB, which is
+programme audio running under a dark frame, so it wants a person. Same two rows, opposite
+dispositions, and only the point-in-time join tells them apart.
 
-**Storage is laid out for the shape of the data.** `Gorilla` then `ZSTD(3)` on the loudness
-floats, because Gorilla is the XOR-of-successive-values codec built for a slowly varying
-float series. `DoubleDelta` on the scan clock. `LowCardinality(String)` on `title_id`.
-`PARTITION BY cityHash64(title_id) % 8`, so re-scanning one title after a repair is a
-partition drop rather than a mutation, which is what a re-delivery actually is.
+**Storage is laid out for the shape of the data.** `Gorilla` then `ZSTD(3)` on the
+loudness floats, because Gorilla is the XOR-of-successive-values codec built for a slowly
+varying float series. `DoubleDelta` on the scan clock. `LowCardinality(String)` on
+`title_id`. `PARTITION BY cityHash64(title_id) % 8`, so re-scanning one title after a
+repair is a partition drop rather than a mutation, which is what a re-delivery actually
+is.
 
 **The decisions land back in the database.** `vault.slips` is an append-only log of every
-work order the crew has issued, with the lane and rationale per title and a flag recording
-whether each figure was verified against a returned cell. The queue outlives the browser
-tab, and the next scan can be read against the last decision.
+work order the crew has issued, with the lane and rationale per title and a flag
+recording whether each figure was verified against a returned cell. The queue outlives
+the browser tab, and the next scan can be read against the last decision.
 
 Fat append-only series, small interactive rollup, point-in-time join, ledger of what was
 decided. Delete ClickHouse and there is no product, only an ffmpeg script.
 
 ### The MCP requirement
 
-The crew reaches ClickHouse only through the official `mcp-clickhouse` MCP server, held by
-Google ADK's `McpToolset` over stdio. It composes its own SQL; nothing in the agent layer
-runs a stored query string. Every statement is recorded with the agent that wrote it, the
-row count it returned, and whether it was refused, and the interface shows that list. Bulk
-insertion of the 100ms samples stays on `clickhouse-connect`, because `run_query` is not an
-insert path and pretending otherwise would be worse engineering, not better compliance.
+The crew reaches ClickHouse only through the official `mcp-clickhouse` MCP server, held
+by Google ADK's `McpToolset` over stdio. It composes its own SQL; nothing in the agent
+layer runs a stored query string. Every statement is recorded with the agent that wrote
+it, the row count it returned, and whether it was refused, and the interface shows that
+list. Bulk insertion of the 100 ms samples stays on `clickhouse-connect`, because
+`run_query` is not an insert path and pretending otherwise would be worse engineering,
+not better compliance.
 
 ---
 
@@ -170,7 +212,7 @@ SequentialAgent  redslip_triage
 │   │             flat offset or wide programme: can gain alone fix this master
 │   │             output_key: loudness_evidence
 │   └── LlmAgent  structural_analyst   McpToolset -> mcp-clickhouse
-│                 reads vault.events ASOF vault.loudness_samples
+│                 reads vault.latest_events ASOF vault.loudness_samples
 │                 reel change or dropout: what the audio was doing at the cut
 │                 output_key: structural_evidence
 └── LlmAgent      work_allocator       no database tools at all
@@ -178,12 +220,12 @@ SequentialAgent  redslip_triage
                   output_key: work_order, output_schema pinned
 ```
 
-Every agent changes an outcome the others cannot reach. The scout decides the length of the
-queue. The loudness analyst decides whether a failure is repairable by gain, which is the
-difference between BATCH and HUMAN and is not in any column. The structural analyst decides
-whether a black frame is damage, which needs a join no verdict row contains. The allocator
-holds the ordering and the lane assignment, and holds no tools, so it can only quote its
-colleagues.
+Every agent changes an outcome the others cannot reach. The scout decides the length of
+the queue. The loudness analyst decides whether a failure is repairable by gain, which is
+the difference between BATCH and HUMAN and is not in any column. The structural analyst
+decides whether a black frame is damage, which needs a join no verdict row contains. The
+allocator holds the ordering and the lane assignment, and holds no tools, so it can only
+quote its colleagues.
 
 The two analysts are parallel because they read different tables and neither needs the
 other's answer. That is the only pair in the graph where that is true.
@@ -193,15 +235,24 @@ equality test between its output and the cells MCP returned, so it is written as
 `verify_against_cells`, in Python. Every run reports `verified` and lists any unsupported
 figure. Paying a second model to audit the first would be theatre.
 
-**A read-only gate, not a hope.** `before_tool_callback` inspects each statement before it
-reaches the MCP server and refuses anything that is not read-only, after stripping comments
-so that `SELECT 1 -- \n; DROP TABLE x` does not slip through a prefix check. A refused
-statement is recorded as refused and the agent is told why.
+**The read-only gate runs before the server sees the statement.** `before_tool_callback` inspects each statement before it
+reaches the MCP server and refuses anything that is not read-only, after stripping
+comments and string literals so that `SELECT 1 --\n; DROP TABLE x` does not slip through
+a prefix check. A refused statement is recorded as refused and the agent is told why.
 
 **Gemini is not removable.** With no credentials the crew raises `GeminiRequired` and
-produces nothing. There is no canned plan behind it. A deterministic substitute emitting the
-same shape would make the model decorative, which is the mistake this project was built to
-avoid.
+produces nothing. There is no canned plan behind it, and
+`tests/test_gemini_required.py` scans the whole agent package to keep one from being
+reintroduced. A deterministic substitute emitting the same shape would make the model
+decorative, which is the mistake this project was built to avoid.
+
+**The Grafana board is structural, not a toggle.** A fifth agent publishes the finished
+work order to Grafana Cloud through the official `mcp-grafana` server. With no service
+account token it is not in the graph at all and the run reports the step as skipped with
+its reason and a null publish payload; with a token it is in the graph and is not
+optional. `tests/test_grafana_is_optional.py` asserts both graph shapes, asserts the
+ClickHouse crew is identical either way, and asserts `/api/agents` still reports
+`ready: true` on ClickHouse readiness alone.
 
 ---
 
@@ -232,20 +283,36 @@ web/app.py                         FastAPI, streams the run as it happens
 
 ---
 
-## Honest limitations
+## Design decisions
 
-- **Scan window.** Each title is measured over its first 120 seconds. A full 90-minute scan
-  is roughly 6 minutes of ffmpeg per title. The window is stated in the interface and in
-  every projection, and no number is presented as a full-length measurement.
-- **Loudness over a window is not loudness over a film.** A title can normalise cleanly
-  across an opening reel and drift later. The window catches most delivery failures. It is
-  not a broadcast-grade full-scan and does not claim to be.
-- **No remediation.** Redslip measures, ranks and dispatches. It does not repair. The
-  loudnorm pass and the cue retiming are separate tooling.
-- **No subtitle findings in the current catalog.** None of the 20 titles ships an SRT, so
-  the TTSS checks are exercised by tests rather than by this scan.
-- **The 28,423-title figure is a projection**, labelled as one everywhere it appears. 20
-  titles are measured.
+**The scan window is 120 seconds per title, and every figure says so.** A full 90-minute
+scan is roughly 6 minutes of ffmpeg per title. The window is stated in the interface and
+in every projection, and no number is presented as a full-length measurement. A title can
+normalise cleanly across an opening reel and drift later; the window catches most
+delivery failures and does not claim to be a broadcast-grade full scan.
+
+**Black frames are detected and never auto-repaired.** A reel change, a fade and physical
+damage look identical to a machine at the event-row level. Redslip stamps each event with
+the loudness at its onset and sends the ambiguous ones to a person, because that
+judgement is a person's.
+
+**A missing loudness sample is reported as unmeasured, not as zero.** An `ASOF LEFT JOIN`
+that matches nothing fills a `Float32` with its type default of `0.0`, which in this
+column reads as digital full scale. The `toNullable` in the join makes a miss arrive as
+null, and a null is rendered as unmeasured.
+
+**Redslip measures, ranks and dispatches. It does not repair.** The loudnorm pass and the
+cue retiming are separate tooling, and the slip says which lane a title belongs in rather
+than pretending the repair already happened.
+
+**The 28,423-title figure is a projection**, labelled as one everywhere it appears. 20
+titles are measured.
+
+**Subtitle checks are exercised by tests rather than by this catalog.** The Netflix TTSS
+reading-speed, minimum-cue and line-length checks run over the full subtitle track when a
+title ships one. None of the 20 titles in the current scan carries an SRT, so those
+checks contribute zero findings to the numbers above, and the totals are not padded with
+them.
 
 ---
 
@@ -257,10 +324,10 @@ web/app.py                         FastAPI, streams the run as it happens
 - ClickHouse, either ClickHouse Cloud or a local server on 8123
 - The official MCP server as an isolated tool: `uv tool install mcp-clickhouse`
 
-`mcp-clickhouse` is installed as a tool rather than as a project dependency on purpose. It
-pulls `fastmcp`, which needs the MCP SDK 2.x, while ADK's `McpToolset` is built against 1.x.
-An MCP server is a separate process by design, so giving it a separate environment removes
-the conflict instead of pinning around it.
+`mcp-clickhouse` is installed as a tool rather than as a project dependency on purpose.
+It pulls `fastmcp`, which needs the MCP SDK 2.x, while ADK's `McpToolset` is built
+against 1.x. An MCP server is a separate process by design, so giving it a separate
+environment removes the conflict instead of pinning around it.
 
 ### Setup
 
@@ -285,8 +352,8 @@ bash run_web.sh
 ```
 
 The ledger is on screen immediately, from a deterministic query. Pressing triage runs the
-ADK crew, which takes roughly 50 seconds and streams each agent's SQL as the agent composes
-it.
+ADK crew, which takes roughly 70 to 120 seconds and streams each agent's SQL as the agent
+composes it.
 
 ### Environment
 
@@ -302,10 +369,11 @@ it.
 | `GOOGLE_CLOUD_LOCATION` | `us-central1` | Vertex AI region |
 | `GOOGLE_API_KEY` | none | Alternative to Vertex AI |
 | `GEMINI_MODEL` | `gemini-2.5-flash` | Model for every agent |
+| `GRAFANA_SERVICE_ACCOUNT_TOKEN` | none | Adds the board agent to the crew |
 
 Secrets belong in `.env`, which is gitignored. `scripts/cloudenv.sh` reads the deployed
-service's own environment into your shell for local work, so no credential is ever written
-to disk.
+service's own environment into your shell for local work, so no credential is ever
+written to disk.
 
 ### API
 
@@ -327,6 +395,19 @@ to disk.
 uv run pytest tests/ -q
 ```
 
+The suite tells you whether it exercised ClickHouse, because a tally alone cannot. On a
+clean checkout with no credentials it reports `91 passed, 32 skipped in 2.40s` and prints
+a red banner saying the ClickHouse integration was not exercised: every one of those
+skips is a test that reads the measured catalog. Pointed at the catalog it reports `117
+passed, 6 skipped in 137.55s` and a green line naming the host it read. A run that names
+a remote host and cannot reach it errors rather than skipping, because that is a broken
+configuration rather than an absent one.
+
+```bash
+source scripts/cloudenv.sh   # do not pipe it, a subshell discards the exports
+uv run pytest tests/ -q
+```
+
 Checks that matter here were each broken deliberately, confirmed red, restored, and
 confirmed green. The catalog-versus-findings agreement check runs over every title in the
 live catalog and refuses to pass on an empty one, because an empty catalog agrees with
@@ -344,9 +425,9 @@ itself and proves nothing.
 | **Redslip** | yes | yes, and dispatches to a bay | no | open source |
 
 Vantage repairs and Redslip does not. What Redslip does that none of them does is answer
-the catalog question: of these titles, which do I touch this week, in what order, and which
-ones need a person. That is a question about a corpus of measurements, which is why the
-answer lives in a column store and not in a per-file report.
+the catalog question: of these titles, which do I touch this week, in what order, and
+which ones need a person. That is a question about a corpus of measurements, which is why
+the answer lives in a column store and not in a per-file report.
 
 ---
 

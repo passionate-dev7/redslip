@@ -7,3 +7,6 @@ logs/*.log
 .env
 .uicraft-read.json
 mitm_mcp_traffic.db
+
+# internal status board, never shipped to judges
+.progress/
