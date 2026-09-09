@@ -23,6 +23,24 @@ measured before delivery, and the re-deliver cycle costs weeks.
 Redslip holds the whole catalog as one queryable ledger. Which titles ship, which need a
 person, which a machine can correct unattended.
 
+The regulator has the same visibility problem one level up, and it has been counting.
+The FCC's March 2025 proposed rule on the CALM Act reopened a regime that had been in
+force for twelve years, and footnote 4 says why: "in 2024 the Commission received at
+least 1,700 complaints referencing loud commercials that appear to relate to broadcast
+television, cable, and satellite, after receiving approximately 750 in 2022 and 825 in
+2023." Complaints roughly doubled while the rule stood still. That is this project's
+argument at national scale. A single loud advert is an incident and nobody can act on
+it; a rising count across a whole population is a pattern, and a pattern is the thing
+that gets a rule reopened. A per-title checker cannot see one. A ledger over the whole
+archive can, which is why Redslip is shaped as a catalog rather than as a file inspector.
+
+Source, read and quoted from the primary text rather than a summary of it: FCC,
+*Implementation of the Commercial Advertisement Loudness Mitigation (CALM) Act*, Proposed
+Rule, 90 FR, FR document
+[2025-03800](https://www.federalregister.gov/documents/2025/03/11/2025-03800/implementation-of-the-commercial-advertisement-loudness-mitigation-calm-act),
+published 11 March 2025, footnote 4. The full text is at
+`https://www.federalregister.gov/documents/full_text/text/2025/03/11/2025-03800.txt`.
+
 **Who it is for:** the catalog or mastering QC lead at an indie distributor or film
 archive, the person who decides which titles get mix-stage time this week. The
 alternative today is a per-seat licence for Telestream Vantage or Venera Pulsar, or
