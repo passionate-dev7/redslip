@@ -8,10 +8,12 @@ keeping the measurements representative (loudness integrates over the window;
 loudness failures are consistent through a film).
 
 Scale argument for ClickHouse:
-  ebur128 emits ~10 rows/sec of content.
-  2 minutes of content = ~1,200 loudness rows.
-  30 titles = ~36,000+ loudness rows from the catalog scan alone.
-  A full-catalog scan (all 28,423 titles) would produce ~27M rows.
+  ebur128 emits about 10 rows per second of content, so 2 minutes is ~1,200 rows
+  per title. Ranking never reads them: vault.title_loudness is an
+  AggregatingMergeTree kept current by a materialized view, and vault.fleet reads
+  one row per title off it. Scanning the full 28,423-title collection in full
+  would put roughly 27 million rows in the sample table, which is the projection
+  the interface labels as a projection.
 """
 
 from __future__ import annotations
@@ -30,12 +32,13 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from qc import archive, measure, store
 
-# Known-good archive.org identifiers with subtitle tracks — verified manually.
-# These are the titles used in critic-round1.md measurements.
+# archive.org identifiers, verified by hand to hold a playable video derivative.
+# Measured values are not recorded here on purpose: the database is the record, and a
+# comment claiming a LUFS figure goes stale the first time a title is re-scanned.
 SEED_TITLES = [
-    "vicki-1953",                           # I = -26.1 LUFS (verified in critic-round1.md)
-    "what_becomes_of_the_children",          # I = -24.3 LUFS (verified)
-    "WerewolfInAGirlsDormitory",             # I = -18.0 LUFS (verified)
+    "vicki-1953",
+    "what_becomes_of_the_children",
+    "WerewolfInAGirlsDormitory",
     "NightOfTheLivingDead720p1968",
     "night-of-the-living-dead-1968_202312",
     "quevadis",
@@ -100,6 +103,18 @@ def scan_title(identifier: str, ch) -> dict:
     else:
         log.info("  cached (%d bytes)", dest.stat().st_size)
 
+    # Record exactly which public file was measured, so any number on a slip can be
+    # re-run by a stranger with ffmpeg and no access to this machine.
+    try:
+        store.store_source(
+            identifier,
+            f"https://archive.org/download/{identifier}/{picked['video']}",
+            SCAN_SECONDS,
+            ch=ch,
+        )
+    except Exception as exc:
+        log.warning("%s: source store failed: %s", identifier, exc)
+
     # Fetch subtitle
     subs = None
     if picked["subtitle"]:
@@ -121,6 +136,16 @@ def scan_title(identifier: str, ch) -> dict:
         store.store_findings(identifier, title, report, ch=ch)
     except Exception as exc:
         log.warning("%s: findings store failed: %s", identifier, exc)
+
+    # Per-occurrence defect rows, for the point-in-time join on the drill path.
+    try:
+        events = measure.structural_events(measure.measure_structural(dest, seconds=SCAN_SECONDS))
+        if subs:
+            events += measure.subtitle_events(subs)
+        n_events = store.store_events(identifier, events, ch=ch)
+        log.info("  %d defect events stored", n_events)
+    except Exception as exc:
+        log.warning("%s: event store failed: %s", identifier, exc)
 
     # Parse + store loudness time series
     try:
@@ -150,7 +175,7 @@ def scan_title(identifier: str, ch) -> dict:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="VAULT catalog ingest")
+    parser = argparse.ArgumentParser(description="Redslip catalog ingest")
     parser.add_argument("--titles", nargs="*", help="Override title list")
     parser.add_argument("--limit", type=int, default=len(SEED_TITLES))
     parser.add_argument("--from-search", action="store_true",
@@ -183,8 +208,8 @@ def main():
     # Verify non-empty (REQUIRED: an empty catalog is not a passing state)
     total_rows = store.row_count("vault.loudness_samples", ch=ch)
     finding_rows = store.row_count("vault.findings", ch=ch)
-    assert total_rows > 0, "loudness_samples is empty — something went wrong"
-    assert finding_rows > 0, "findings is empty — something went wrong"
+    assert total_rows > 0, "loudness_samples is empty: something went wrong"
+    assert finding_rows > 0, "findings is empty: something went wrong"
 
     log.info("=" * 60)
     log.info("Ingest complete in %.0fs", elapsed)

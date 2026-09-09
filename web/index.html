@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Redslip: delivery rejection slip</title>
+<title>Redslip: delivery rejection ledger</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -22,6 +22,7 @@
   --canvas:   #ffffff;
   --link:     #057dbc;
   --fail:     #c81e1e;
+  --band:     rgba(5,125,188,.09);
 
   --display: 'Newsreader', 'Times New Roman', Georgia, serif;
   --read:    'Source Serif 4', Georgia, 'Times New Roman', serif;
@@ -40,10 +41,19 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Masthead: the wordmark, one line, 2px rule under it. */
+/* Masthead: the wordmark on the left, the measurement imprint on the right,
+   the way a print masthead carries its impressum. 2px rule under both. */
 header {
   border-bottom: 2px solid var(--ink);
-  padding: 30px 44px 18px;
+  padding: 30px 44px 20px;
+}
+.masthead-row {
+  display: grid;
+  grid-template-columns: 1fr minmax(380px, 46ch);
+  gap: 44px;
+  /* The wordmark sits down on the rule, the way a masthead does in print, so the
+     imprint beside it does not leave a hole under the standfirst. */
+  align-items: end;
 }
 .masthead {
   font-family: var(--display);
@@ -62,6 +72,51 @@ header {
   margin-top: 12px;
 }
 
+/* The imprint: the ClickHouse workload, in the ledger's voice. Figures in mono,
+   the table they came out of beside them, the honest projection last. */
+.imprint {
+  border-left: 1px solid var(--hairline);
+  padding-left: 26px;
+  padding-top: 4px;
+}
+.imprint .lbl {
+  font: 700 11px/1.4 var(--sans);
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--body);
+  display: block;
+  margin-bottom: 9px;
+}
+.imprint-fig {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  border-top: 1px solid var(--hairline-soft);
+  padding: 4px 0 3px;
+}
+.imprint-fig:last-of-type { border-bottom: 1px solid var(--hairline-soft); }
+.imprint-fig .n {
+  font-family: var(--mono);
+  font-size: 21px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  min-width: 7ch;
+  text-align: right;
+}
+.imprint-fig .n.small { font-size: 15px; }
+.imprint-fig .u { font: 400 12px/1.4 var(--mono); color: var(--body); }
+.imprint-fig .tbl { font: 400 12px/1.4 var(--mono); color: var(--ink-soft); margin-left: auto; }
+.imprint-note {
+  font-family: var(--read);
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--body);
+  margin-top: 8px;
+}
+.imprint-note .mono { font-family: var(--mono); font-size: 13px; color: var(--ink-soft); }
+.imprint-note.projection { font-style: italic; margin-top: 8px; }
+.imprint-note.projection b { font-style: normal; font-family: var(--mono); font-size: 13px; color: var(--ink); font-weight: 500; }
+
 /* Two columns: the ledger and the slip. A hairline runs between them. */
 .sheet {
   display: grid;
@@ -69,7 +124,7 @@ header {
   min-height: calc(100dvh - 128px);
 }
 .ledger  { border-right: 1px solid var(--hairline); padding: 26px 30px 60px 44px; }
-.slip    { padding: 34px 44px 60px 40px; }
+.slip    { padding: 26px 44px 60px 40px; min-width: 0; }
 
 /* Left: a newspaper column of titles, worst first. */
 .dateline {
@@ -116,9 +171,12 @@ header {
   color: var(--body);
   display: flex;
   gap: 14px;
+  flex-wrap: wrap;
+  font-variant-numeric: tabular-nums;
 }
 .title-meta .m-lufs.reject { color: var(--fail); }
 .title-meta .m-fails { color: var(--body); }
+.title-meta .na { font-family: var(--read); font-style: italic; font-size: 13.5px; color: var(--body); }
 
 /* Right: the slip, typeset as a letter. */
 .slip-eyebrow {
@@ -142,17 +200,17 @@ header {
   line-height: 1.02;
   letter-spacing: -1px;
   color: var(--ink);
-  margin: 16px 0 24px;
+  margin: 12px 0 18px;
   max-width: 20ch;
 }
 
-.rule { border: 0; border-top: 1px solid var(--ink); margin: 22px 0; }
+.rule { border: 0; border-top: 1px solid var(--ink); margin: 20px 0; }
 .rule-soft { border: 0; border-top: 1px solid var(--hairline); margin: 18px 0; }
 
 .integrated {
   display: flex;
   align-items: baseline;
-  gap: 20px;
+  gap: 18px;
   flex-wrap: wrap;
   font-family: var(--read);
   font-size: 19px;
@@ -163,9 +221,23 @@ header {
   text-transform: uppercase;
   color: var(--body);
 }
-.integrated .val { font-family: var(--mono); font-size: 26px; color: var(--ink); }
+.integrated .val { font-family: var(--mono); font-size: 26px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .integrated .val.reject { color: var(--fail); }
+.integrated .off { font-family: var(--mono); font-size: 14px; color: var(--fail); }
 .integrated .spec { font-family: var(--mono); font-size: 14px; color: var(--body); }
+
+/* Absence is never a number. It is set in italic reading serif, in the muted
+   ink, and it never takes the fail red or the ink black a measurement takes. */
+.na { font-family: var(--read); font-style: italic; color: var(--body); }
+.na-line {
+  font-family: var(--read);
+  font-style: italic;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--body);
+  border-left: 2px solid var(--hairline);
+  padding-left: 12px;
+}
 
 .checks { margin-top: 6px; }
 .check {
@@ -186,21 +258,21 @@ header {
   color: var(--ink-soft);
   line-height: 1.5;
 }
-.check-body .num { font-family: var(--mono); font-size: 14px; }
+.check-body .num { font-family: var(--mono); font-size: 14px; font-variant-numeric: tabular-nums; }
 .check-body .num.reject { color: var(--fail); }
 .check-detail { color: var(--body); font-size: 15px; margin-top: 2px; }
 .check-rescue { color: var(--body); font-size: 14px; margin-top: 3px; }
 
-.field { margin-top: 22px; }
+.field { margin-top: 24px; }
 .field .lbl {
   font: 700 11px/1.4 var(--sans);
   letter-spacing: 1.4px;
   text-transform: uppercase;
   color: var(--body);
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 7px;
 }
-.listen .time { font-family: var(--mono); font-size: 22px; color: var(--ink); }
+.listen .time { font-family: var(--mono); font-size: 22px; color: var(--ink); font-variant-numeric: tabular-nums; }
 .listen .sub { font-family: var(--mono); font-size: 13px; color: var(--body); margin-top: 4px; }
 .plan-text {
   font-family: var(--read);
@@ -211,17 +283,89 @@ header {
 }
 .plan-none { font-family: var(--read); font-style: italic; font-size: 17px; color: var(--body); }
 
-/* Loudness plot: a hairline under the letter, subordinate to it. */
-canvas.lufs-chart {
+/* The trace: 1,201 rows out of ClickHouse, drawn. It sits directly under the
+   integrated figure because it is the evidence for it, not decoration. */
+.trace-wrap { margin-top: 14px; }
+.trace-svg {
   display: block;
   width: 100%;
-  height: 56px;
-  background: var(--canvas);
+  height: auto;
   border-top: 1px solid var(--hairline);
   border-bottom: 1px solid var(--hairline);
-  margin-top: 26px;
 }
-.chart-cap { font: 400 11.5px/1.4 var(--mono); color: var(--body); margin-top: 6px; }
+.trace-svg text { font-family: var(--mono); fill: var(--body); }
+.trace-readout {
+  font: 400 12.5px/1.5 var(--mono);
+  color: var(--ink-soft);
+  min-height: 19px;
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.trace-readout .dim { color: var(--body); }
+.chart-cap {
+  font-family: var(--read);
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--body);
+  margin-top: 3px;
+  max-width: 78ch;
+}
+.chart-cap .mono { font-family: var(--mono); font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.chart-cap .red  { color: var(--fail); }
+.chart-cap .blk  { color: var(--ink); }
+
+/* Defects, joined to the loudness row that was live when each one began. */
+.events { border-top: 1px solid var(--hairline); }
+.event {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  border-bottom: 1px solid var(--hairline-soft);
+  padding: 8px 0 7px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.event .kind { font-family: var(--read); font-size: 16px; color: var(--fail); min-width: 15ch; }
+.event .at { color: var(--ink); }
+.event .st { color: var(--body); margin-left: auto; text-align: right; }
+.event .st .na { font-size: 13px; }
+
+/* Reproduce: the command, the source, and what it should print. */
+.verify-lede {
+  font-family: var(--read);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 72ch;
+}
+.verify-lede .mono { font-family: var(--mono); font-size: 13.5px; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+pre.cmd {
+  font: 400 12.5px/1.7 var(--mono);
+  color: var(--ink);
+  background: #fafafa;
+  border-left: 2px solid var(--ink);
+  padding: 12px 14px;
+  margin-top: 10px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+}
+.verify-links {
+  margin-top: 10px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+.verify-links a, .btn-copy, .btn-link {
+  font: 400 15px/1.4 var(--sans);
+  color: var(--link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.verify-links a:hover { color: var(--ink); }
 
 /* Copy control: a text link, not a button chrome. */
 .slip-actions {
@@ -235,11 +379,7 @@ canvas.lufs-chart {
   background: none;
   border: none;
   padding: 0;
-  font: 400 15px/1.4 var(--sans);
-  color: var(--link);
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 .btn-copy:hover, .btn-link:hover { color: var(--ink); }
 .btn-link:disabled { color: var(--body); cursor: default; text-decoration: none; }
@@ -270,6 +410,69 @@ canvas.lufs-chart {
 }
 .triage-out.visible { display: block; }
 
+/* The work order, typeset rather than dumped. Same ledger rules, no chrome. */
+.triage-out.rendered {
+  white-space: normal;
+  font-family: var(--read);
+  font-size: 16px;
+  color: var(--ink-soft);
+  overflow-x: visible;
+}
+.wo-head { font: 400 12px/1.5 var(--mono); color: var(--body); }
+.wo-summary { font-family: var(--read); font-size: 18px; line-height: 1.5; color: var(--ink); margin-top: 10px; max-width: 74ch; }
+.wo-verified { font: 400 13px/1.5 var(--mono); color: var(--body); margin-top: 8px; max-width: 74ch; }
+.wo-verified.bad { color: var(--fail); }
+.wo-queue { margin-top: 16px; border-top: 1px solid var(--ink); }
+.wo-row {
+  display: grid;
+  grid-template-columns: 3ch 1fr 7ch 8ch;
+  gap: 6px 14px;
+  align-items: baseline;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--hairline-soft);
+  padding: 9px 0 8px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.wo-row:hover { background: #fafafa; }
+.wo-rank  { font: 400 12.5px/1.4 var(--mono); color: var(--body); font-variant-numeric: tabular-nums; }
+.wo-title { font-family: var(--read); font-size: 17px; color: var(--ink); }
+.wo-lane  { font: 700 10.5px/1.4 var(--sans); letter-spacing: 1.4px; color: var(--body); }
+.wo-lane.human { color: var(--fail); }
+.wo-delta { font: 400 12.5px/1.4 var(--mono); color: var(--body); text-align: right; font-variant-numeric: tabular-nums; }
+.wo-why   { grid-column: 2 / -1; font-family: var(--read); font-size: 15px; line-height: 1.45; color: var(--body); }
+.wo-caption { font-family: var(--read); font-size: 14px; color: var(--body); margin-top: 7px; }
+.wo-note {
+  font-family: var(--read);
+  font-size: 16.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  border-left: 2px solid var(--ink);
+  padding-left: 14px;
+  margin-top: 18px;
+  max-width: 74ch;
+}
+.wo-sql { margin-top: 18px; }
+.wo-q { margin-top: 12px; }
+.wo-q-head { font: 400 12px/1.5 var(--mono); color: var(--body); }
+.wo-q-head .blocked { color: var(--fail); }
+.wo-q pre {
+  font: 400 12px/1.6 var(--mono);
+  color: var(--ink-soft);
+  background: #fafafa;
+  border-left: 2px solid var(--hairline);
+  padding: 10px 12px;
+  margin-top: 5px;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.wo-grafana { font: 400 13px/1.5 var(--mono); color: var(--body); margin-top: 16px; }
+.wo-grafana.skipped { font-family: var(--read); font-style: italic; font-size: 15px; }
+.wo-grafana a { color: var(--link); }
+
 .empty { color: var(--body); font-family: var(--read); font-style: italic; font-size: 18px; padding: 40px 0; }
 
 /* Colophon: the MCP log, folded down at the foot of the page. */
@@ -297,22 +500,37 @@ details > summary:hover { color: var(--ink); }
 .mcp-q    { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-top: 4px; word-break: break-all; }
 .mcp-res  { font-family: var(--mono); font-size: 12px; color: var(--body); margin-top: 3px; }
 
+@media (max-width: 1120px) {
+  .masthead-row { grid-template-columns: 1fr; gap: 22px; }
+  .imprint { border-left: none; border-top: 1px solid var(--hairline); padding-left: 0; padding-top: 14px; max-width: 68ch; }
+}
 @media (max-width: 900px) {
-  header { padding: 24px 24px 16px; }
+  header { padding: 24px 24px 18px; }
   .masthead { font-size: 52px; letter-spacing: -1.4px; }
   .sheet { grid-template-columns: 1fr; }
   .ledger { border-right: none; border-bottom: 1px solid var(--ink); padding: 20px 24px 30px; }
   .slip { padding: 26px 24px 50px; }
   .slip-title { font-size: 40px; }
   .colophon { margin: 0 24px; }
+  .event { flex-wrap: wrap; }
+  .event .kind { min-width: 0; }
+  .event .st { margin-left: 0; }
 }
 </style>
 </head>
 <body>
 
 <header>
-  <h1 class="masthead">Redslip</h1>
-  <p class="standfirst">The titles in this archive that the delivery spec would reject today, worst first.</p>
+  <div class="masthead-row">
+    <div>
+      <h1 class="masthead">Redslip</h1>
+      <p class="standfirst">The titles in this archive that the delivery spec would reject today, worst first.</p>
+    </div>
+    <aside class="imprint" id="imprint">
+      <span class="lbl">Measured in ClickHouse</span>
+      <p class="imprint-note">Reading the row counts...</p>
+    </aside>
+  </div>
 </header>
 
 <div class="sheet">
@@ -342,23 +560,48 @@ let allRows    = [];
 let selectedId = null;
 let mcpLoaded  = false;
 
-// ── Ordering ────────────────────────────────���──
-// Distance of a title's integrated loudness from the -23 LUFS target. Null when
-// the title has no measured loudness, so it sorts to the foot of the column
-// rather than masquerading as on-spec.
-function lufsDelta(row) {
-  if (row == null || row.integrated_lufs == null) return null;
+// /api/stats, verbatim. The EBU R128 target, the scan window and the row counts
+// all come from here rather than from a constant typed into this file.
+let stats = null;
+
+// ebur128 gates at -70 LUFS. A sample at or under the gate is silence, not a
+// quiet measurement, so the trace breaks rather than drawing a floor as data.
+const LUFS_FLOOR = -70;
+
+function esc(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+function fmtInt(n) {
+  const v = Number(n);
+  return Number.isFinite(v) ? v.toLocaleString("en-US") : null;
+}
+
+// ── Ordering ───────────────────────────────────
+// Distance of a title's integrated loudness from the EBU R128 target, in LU.
+// Null when the title has no measured loudness, so it sorts to the foot of the
+// column rather than masquerading as on-spec. The target is passed in from
+// /api/stats.ebu_r128_target_lufs; the default is the published R128 figure and
+// only applies when a caller supplies no target at all.
+function lufsDelta(row, target = -23) {
+  if (row == null) return null;
+  if (row.lufs_delta != null) {
+    const d = parseFloat(row.lufs_delta);
+    if (Number.isFinite(d)) return Math.abs(d);
+  }
+  if (row.integrated_lufs == null) return null;
   const v = parseFloat(row.integrated_lufs);
   if (!Number.isFinite(v)) return null;
-  return Math.abs(v - (-23));
+  return Math.abs(v - target);
 }
 
 // The exact order the ledger paints: worst loudness delta first, measured titles
 // above unmeasured, ties broken by failure count then title. Pure, so a test can
 // run it on the real /api/catalog payload.
-function orderedTitles(rows) {
+function orderedTitles(rows, target = -23) {
   return rows.slice().sort((a, b) => {
-    const da = lufsDelta(a), db = lufsDelta(b);
+    const da = lufsDelta(a, target), db = lufsDelta(b, target);
     if (da == null && db == null) {
       const fa = a.failures || 0, fb = b.failures || 0;
       if (fb !== fa) return fb - fa;
@@ -376,9 +619,77 @@ function orderedTitles(rows) {
 // The title a judge should already be reading on load: the worst reject at the
 // head of the column. Null when nothing is rejected, and then the top title is
 // shown instead. Pure, so a test can run it on the real payload.
-function openingFailId(rows) {
-  const worst = orderedTitles(rows).find(r => r.verdict !== "PASS");
+function openingFailId(rows, target = -23) {
+  const worst = orderedTitles(rows, target).find(r => r.verdict !== "PASS");
   return worst ? worst.title_id : null;
+}
+
+// The target the whole page measures against. Only /api/stats sets it; until it
+// answers, the R128 default in the ordering functions stands.
+function specTarget() {
+  return stats && stats.ebu_r128_target_lufs != null
+    ? parseFloat(stats.ebu_r128_target_lufs)
+    : -23;
+}
+
+// Rows per second of programme, worked out from the row count, the title count
+// and the scan window this deployment actually used. Nothing is assumed about
+// ebur128's rate: it is divided out of the numbers /api/stats reports.
+function sampleRate(s) {
+  if (!s) return null;
+  const rows = Number(s.loudness_sample_rows), titles = Number(s.title_count);
+  const win  = Number(s.scan_window_seconds);
+  if (!(rows > 0 && titles > 0 && win > 0)) return null;
+  return rows / (titles * win);
+}
+
+// ── The imprint: the ClickHouse workload, above the fold ────────────────────
+async function loadStats() {
+  const host = document.getElementById("imprint");
+  try {
+    stats = await fetch("/api/stats").then(r => r.json());
+  } catch (e) {
+    host.innerHTML = `<span class="lbl">Measured in ClickHouse</span>
+      <p class="imprint-note" style="color:var(--fail);font-style:normal">Row counts unavailable: ${esc(e)}</p>`;
+    return;
+  }
+  const s = stats;
+  const rate = sampleRate(s);
+  const rows = fmtInt(s.loudness_sample_rows);
+  const finds = fmtInt(s.finding_rows);
+  const titles = fmtInt(s.title_count);
+  const target = s.ebu_r128_target_lufs != null ? parseFloat(s.ebu_r128_target_lufs).toFixed(0) : null;
+
+  const figs = [];
+  if (rows) figs.push(
+    `<div class="imprint-fig"><span class="n">${rows}</span><span class="u">rows</span>
+       <span class="tbl">vault.loudness_samples</span></div>`);
+  if (finds) figs.push(
+    `<div class="imprint-fig"><span class="n small">${finds}</span><span class="u">rows</span>
+       <span class="tbl">vault.findings</span></div>`);
+
+  // The scale sentence is only composed here when /api/stats did not write one.
+  // When it did, the note below carries the row arithmetic and repeating it would
+  // be furniture rather than evidence.
+  const sentence = [];
+  if (!s.note) {
+    if (rate && titles && s.scan_window_label) {
+      sentence.push(`One short-term loudness reading every <span class="mono">${(1 / rate).toFixed(1)} s</span> of programme,`);
+      sentence.push(`<span class="mono">${rate.toFixed(1)}</span> rows per second per title, across the ${esc(s.scan_window_label)}.`);
+    } else if (rows && titles) {
+      sentence.push(`<span class="mono">${rows}</span> loudness readings across <span class="mono">${titles}</span> titles.`);
+    }
+  }
+  if (target) sentence.push(`Ordered by distance from the <span class="mono">${target} LUFS</span> EBU R128 target, in LU.`);
+
+  const note = s.note
+    ? `<p class="imprint-note projection">${esc(s.note)}</p>`
+    : "";
+
+  host.innerHTML = `<span class="lbl">Measured in ClickHouse</span>
+    ${figs.join("")}
+    ${sentence.length ? `<p class="imprint-note">${sentence.join(" ")}</p>` : ""}
+    ${note}`;
 }
 
 // ── Catalog ────────────────────────────────────
@@ -396,7 +707,7 @@ async function loadCatalog() {
     renderTitles();
     openWorstFailure();
   } catch(e) {
-    host.innerHTML = `<p class="empty" style="color:var(--fail);font-style:normal">Error loading catalog: ${e}</p>`;
+    host.innerHTML = `<p class="empty" style="color:var(--fail);font-style:normal">Error loading catalog: ${esc(e)}</p>`;
   }
 }
 
@@ -407,17 +718,32 @@ function renderDateline() {
     `Delivery QC &nbsp;/&nbsp; <b>${n}</b> titles measured, <b>${rej}</b> rejected`;
 }
 
+// The loudness cell in the ledger, read straight off /api/catalog.integrated_lufs.
+// No reconciliation against the per-title findings: if the two endpoints disagree
+// the page shows the disagreement rather than papering over it.
 function lufsCell(row) {
-  const d = lufsDelta(row);
-  if (d == null) return `<span class="m-lufs">no loudness</span>`;
+  const target = specTarget();
+  const d = lufsDelta(row, target);
+  if (d == null || row.integrated_lufs == null) {
+    return `<span class="na">loudness not measured</span>`;
+  }
   const v = parseFloat(row.integrated_lufs);
-  const sign = (v - (-23)) > 0 ? "+" : "";
+  const off = v - target;
+  const sign = off > 0 ? "+" : "";
   const cls = d > 1 ? " reject" : "";
-  return `<span class="m-lufs${cls}">${v.toFixed(1)} LUFS (${sign}${(v-(-23)).toFixed(1)})</span>`;
+  return `<span class="m-lufs${cls}">${v.toFixed(1)} LUFS</span>
+          <span class="m-lufs${cls}">${sign}${off.toFixed(1)} LU</span>`;
+}
+
+function rowsCell(row) {
+  const n = row.loudness_sample_count != null ? row.loudness_sample_count : row.loudness_samples;
+  const v = fmtInt(n);
+  if (!v || Number(n) === 0) return `<span class="na">no rows</span>`;
+  return `<span>${v} rows</span>`;
 }
 
 function renderTitles() {
-  const ordered = orderedTitles(allRows);
+  const ordered = orderedTitles(allRows, specTarget());
   const host = document.getElementById("titles");
   host.innerHTML = ordered.map(r => {
     const tid = r.title_id;
@@ -427,9 +753,9 @@ function renderTitles() {
       ? `<span class="m-fails">${r.failures || 0} failed</span>`
       : `<span class="m-fails">clear</span>`;
     return `
-<button class="title-line${isReject ? " reject" : ""}${sel}" data-tid="${String(tid).replace(/"/g, "&quot;")}">
-  <span class="title-name">${r.title || tid}</span>
-  <span class="title-meta">${lufsCell(r)} ${fails}</span>
+<button class="title-line${isReject ? " reject" : ""}${sel}" data-tid="${esc(tid)}">
+  <span class="title-name">${esc(r.title || tid)}</span>
+  <span class="title-meta">${lufsCell(r)} ${fails} ${rowsCell(r)}</span>
 </button>`;
   }).join("");
   host.onclick = (e) => {
@@ -441,7 +767,8 @@ function renderTitles() {
 // Open the worst reject on load (or the head title if nothing is rejected),
 // through the same selection path a click uses.
 function openWorstFailure() {
-  const tid = openingFailId(allRows) || orderedTitles(allRows)[0].title_id;
+  const target = specTarget();
+  const tid = openingFailId(allRows, target) || orderedTitles(allRows, target)[0].title_id;
   selectTitle(tid);
 }
 
@@ -465,9 +792,30 @@ function checkLabel(name) {
   return String(name).replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// A measured figure, or an explicit statement that nothing was measured. The
+// absent case is never formatted like a number and never takes a verdict colour.
+// Printed to the precision the measurement carries. ffmpeg reports loudness to
+// one decimal and segment counts as integers; padding either to two decimals
+// would claim resolution the source never had.
 function num(v, unit) {
   if (v == null) return "not measured";
-  return `${parseFloat(v).toFixed(2)} ${unit || ""}`.trim();
+  const n = parseFloat(v);
+  const s = n.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return `${s} ${unit || ""}`.trim();
+}
+function numCell(v, unit, cls) {
+  if (v == null) return `<span class="na">not measured</span>`;
+  return `<span class="num${cls || ""}">${num(v, unit)}</span>`;
+}
+
+// The tolerance the check itself declared, pulled out of its own detail line.
+// Null when the finding does not state one, and then no band is shaded.
+function toleranceOf(finding) {
+  if (!finding || !finding.detail) return null;
+  const m = /tolerance\s+([\d.]+)\s*LU/i.exec(finding.detail);
+  if (!m) return null;
+  const t = parseFloat(m[1]);
+  return Number.isFinite(t) ? t : null;
 }
 
 async function loadDetail(titleId) {
@@ -482,22 +830,24 @@ async function loadDetail(titleId) {
     const failed = findings.filter(f => !f.passed);
     const isReject = failed.length > 0;
 
-    // Integrated loudness headline, from the EBU R128 finding if present.
+    // The integrated loudness of record is the number the EBU R128 check ran on,
+    // read off the same finding the table below prints. The ledger reads
+    // /api/catalog separately, so a backend disagreement stays visible.
     const ebu = findings.find(f => f.check_name === "integrated_loudness_ebu_r128");
-    const lufsVal = row.integrated_lufs != null ? parseFloat(row.integrated_lufs)
-                  : (ebu && ebu.measured != null ? parseFloat(ebu.measured) : null);
-    const lufsOff = lufsVal != null ? Math.abs(lufsVal - (-23)) > 1 : false;
+    const target = ebu && ebu.target != null ? parseFloat(ebu.target) : specTarget();
+    const tol = toleranceOf(ebu);
+    const lufsVal = ebu && ebu.measured != null ? parseFloat(ebu.measured) : null;
+    const off = lufsVal != null ? lufsVal - target : null;
+    const lufsOff = off != null && tol != null ? Math.abs(off) > tol : (off != null && Math.abs(off) > 1);
 
     const checksHtml = (isReject ? failed : findings).map(f => {
       const cls = f.passed ? "" : " reject";
-      const measured = num(f.measured, f.unit);
-      const spec = num(f.target, f.unit);
-      const detail = f.detail ? `<div class="check-detail">${f.detail}</div>` : "";
-      const rescue = f.rescue_cost ? `<div class="check-rescue">Rescue: ${f.rescue_cost}</div>` : "";
+      const detail = f.detail ? `<div class="check-detail">${esc(f.detail)}</div>` : "";
+      const rescue = f.rescue_cost ? `<div class="check-rescue">Rescue: ${esc(f.rescue_cost)}</div>` : "";
       return `
 <div class="check${cls}">
-  <div class="check-name">${checkLabel(f.check_name)}</div>
-  <div class="check-body">measured <span class="num${cls}">${measured}</span> against spec <span class="num">${spec}</span>${f.spec ? ` (${f.spec})` : ""}</div>
+  <div class="check-name">${esc(checkLabel(f.check_name))}</div>
+  <div class="check-body">${f.measured == null ? "" : "measured "}${numCell(f.measured, f.unit, cls)} against spec <span class="num">${esc(num(f.target, f.unit))}</span>${f.spec ? ` (${esc(f.spec)})` : ""}</div>
   ${detail}${rescue}
 </div>`;
     }).join("");
@@ -512,45 +862,47 @@ async function loadDetail(titleId) {
   <div class="sub">quietest ${parseFloat(w.quietest_short_term_lufs).toFixed(1)} LUFS, loudest ${parseFloat(w.loudest_short_term_lufs).toFixed(1)} LUFS short-term</div>
 </div>`;
     } else {
-      listenHtml = `<div class="plan-none">No loudness window stored for this title.</div>`;
+      listenHtml = `<p class="na-line">No loudness window stored for this title, so there is no timestamp to cue.</p>`;
     }
 
     // PLAN block from triage already in hand, or a named next action.
     const plan = planFor(titleId);
     const planHtml = plan
-      ? `<div class="plan-text">${plan}</div>`
+      ? `<div class="plan-text">${esc(plan)}</div>`
       : `<div class="plan-none">Not triaged. <button class="btn-link" onclick="runTriage()">Re-triage the catalog</button> to fill the plan.</div>`;
-
-    const chartCap = d.sample_count
-      ? `${d.sample_count.toLocaleString()} loudness samples, short-term against the -23 LUFS line`
-      : "No loudness samples";
 
     slip.innerHTML = `
 <div class="slip-eyebrow">Redslip</div>
 <div class="slip-verdict${isReject ? "" : " clear"}">${isReject ? "delivery rejected" : "delivery cleared"}</div>
-<h2 class="slip-title">${row.title || titleId}</h2>
+<h2 class="slip-title">${esc(row.title || titleId)}</h2>
 
 <div class="integrated">
   <span class="lbl">Integrated</span>
-  <span class="val${lufsOff ? " reject" : ""}">${lufsVal != null ? lufsVal.toFixed(1) + " LUFS" : "not measured"}</span>
-  <span class="spec">spec -23 &plusmn;1 LUFS</span>
+  ${lufsVal != null
+    ? `<span class="val${lufsOff ? " reject" : ""}">${lufsVal.toFixed(1)} LUFS</span>
+       ${lufsOff ? `<span class="off">${Math.abs(off).toFixed(1)} LU too ${off > 0 ? "loud" : "quiet"}</span>` : ""}`
+    : `<span class="na" style="font-size:20px">integrated loudness not measured</span>`}
+  <span class="spec">spec ${target.toFixed(0)}${tol != null ? ` &plusmn;${tol.toFixed(1)}` : ""} LUFS</span>
 </div>
+
+${traceBlock(d, target, tol, lufsVal)}
 
 <hr class="rule">
 <div class="checks">${checksHtml || `<div class="plan-none">No failed checks on this title.</div>`}</div>
+
+${eventsBlock(d)}
 
 <div class="field listen">
   <span class="lbl">Listen</span>
   ${listenHtml}
 </div>
 
+${verifyBlock(d, lufsVal)}
+
 <div class="field">
   <span class="lbl">Plan</span>
   ${planHtml}
 </div>
-
-<canvas class="lufs-chart" id="chart-${safe}"></canvas>
-<div class="chart-cap">${chartCap}</div>
 
 <div class="slip-actions">
   <button class="btn-copy" onclick="copySlip(this, ${JSON.stringify(titleId).replace(/"/g, "&quot;")})">Copy slip</button>
@@ -559,10 +911,10 @@ async function loadDetail(titleId) {
 <pre class="slip-fallback" id="slipfallback-${safe}"></pre>
 <div class="triage-out" id="triage-output"></div>`;
 
-    requestAnimationFrame(() =>
-      drawChart(`chart-${safe}`, d.loudness_chart || [], d.worst_window || null));
+    paintTrace();
+    paintWorkOrder();
   } catch(e) {
-    slip.innerHTML = `<p class="empty" style="color:var(--fail);font-style:normal">Error: ${e}</p>`;
+    slip.innerHTML = `<p class="empty" style="color:var(--fail);font-style:normal">Error: ${esc(e)}</p>`;
   }
 }
 
@@ -580,10 +932,34 @@ function planFor(titleId) {
   const row = allRows.find(r => r.title_id === titleId) || {};
   const name = (row.title || "").toLowerCase();
 
-  const entry = (lastTriage && lastTriage.rescue_plan || []).find(p =>
+  const matches = p =>
     p.title_id === titleId ||
-    (p.title && name && p.title.toLowerCase() === name)
-  );
+    (p.title && name && p.title.toLowerCase() === name);
+
+  // The work order the crew returns: a ranked queue with a lane per title.
+  const queued = (lastTriage && lastTriage.queue || []).find(matches);
+  if (queued) {
+    const L = [];
+    const total = (lastTriage.queue || []).length;
+    if (queued.rank != null) L.push(`Rank:      ${queued.rank}${total ? ` of ${total}` : ""}`);
+    if (queued.lane)         L.push(`Lane:      ${queued.lane}`);
+    if (queued.integrated_lufs != null) {
+      const delta = queued.lufs_delta != null ? parseFloat(queued.lufs_delta).toFixed(1) : "n/a";
+      L.push(`LUFS:      ${parseFloat(queued.integrated_lufs).toFixed(1)} (delta ${delta} LU)`);
+    }
+    if (queued.failures != null) L.push(`Failures:  ${queued.failures}`);
+    if (queued.rescue_cost) L.push(`Rescue:    ${queued.rescue_cost}`);
+    if (queued.rationale)   L.push(`Rationale: ${queued.rationale}`);
+    if (lastTriage.operator_note) {
+      L.push("");
+      L.push("Operator note");
+      L.push(lastTriage.operator_note);
+    }
+    if (lastTriage.model) L.push(`Planned by ${lastTriage.model}.`);
+    return L.join("\n");
+  }
+
+  const entry = (lastTriage && lastTriage.rescue_plan || []).find(matches);
 
   if (entry) {
     const L = [];
@@ -633,6 +1009,23 @@ function listenLines(titleId) {
   ];
 }
 
+// The lines that let the reader re-measure the title themselves. Absent source,
+// absent command: the slip says so instead of printing something unrunnable.
+function reproduceLines(titleId) {
+  const d = detailCache[titleId] || {};
+  if (!d.reproduce && !d.source_url) {
+    return ["REPRODUCE: no source URL recorded for this title."];
+  }
+  const L = ["REPRODUCE", "-".repeat(60)];
+  if (d.source_url) L.push(`Source:  ${d.source_url}`);
+  if (d.details_url) L.push(`Record:  ${d.details_url}`);
+  if (d.reproduce) {
+    L.push("");
+    L.push(d.reproduce);
+  }
+  return L;
+}
+
 function buildSlip(titleId) {
   const d = detailCache[titleId];
   if (!d) return "";
@@ -673,6 +1066,9 @@ function buildSlip(titleId) {
   listenLines(titleId).forEach(l => L.push(l));
   L.push("");
 
+  reproduceLines(titleId).forEach(l => L.push(l));
+  L.push("");
+
   const plan = planFor(titleId);
   if (plan) {
     L.push("PLAN");
@@ -686,14 +1082,9 @@ function buildSlip(titleId) {
   return L.join("\n");
 }
 
-function copySlip(btn, titleId) {
-  const text = buildSlip(titleId);
-  const safe = titleId.replace(/[^a-z0-9]/gi, "_");
-  const note = document.getElementById(`slipnote-${safe}`);
-  const lines = text.split("\n").length;
-
-  // execCommand first: synchronous, works even when the tab is not focused.
-  // The async clipboard API stalls indefinitely on an unfocused document.
+// Synchronous copy first: execCommand works even when the tab is not focused,
+// where the async clipboard API stalls indefinitely.
+function writeClipboard(text) {
   const ta = document.createElement("textarea");
   ta.value = text;
   ta.style.position = "fixed";
@@ -705,8 +1096,16 @@ function copySlip(btn, titleId) {
   let ok = false;
   try { ok = document.execCommand("copy"); } catch(e) { ok = false; }
   document.body.removeChild(ta);
+  return ok;
+}
 
-  if (ok) {
+function copySlip(btn, titleId) {
+  const text = buildSlip(titleId);
+  const safe = titleId.replace(/[^a-z0-9]/gi, "_");
+  const note = document.getElementById(`slipnote-${safe}`);
+  const lines = text.split("\n").length;
+
+  if (writeClipboard(text)) {
     if (note) note.textContent = `Copied ${lines} lines to clipboard`;
     setTimeout(() => { if (note) note.textContent = ""; }, 4000);
     return;
@@ -728,6 +1127,19 @@ function copySlip(btn, titleId) {
   }
   if (note) note.textContent = "Copy blocked, select the slip below and copy manually";
   showFallback(safe, text);
+}
+
+// Copy the ffmpeg line. On refusal the command is already on the page in full,
+// selectable, so the reader is never stranded.
+function copyCommand(btn) {
+  const pre = document.getElementById("verify-cmd");
+  const note = document.getElementById("verify-note");
+  if (!pre) return;
+  const ok = writeClipboard(pre.textContent);
+  if (note) {
+    note.textContent = ok ? "Copied. Paste it into a shell." : "Copy blocked, select the command above.";
+    setTimeout(() => { if (note) note.textContent = ""; }, 5000);
+  }
 }
 
 // Visible, selectable slip so a reviewer is never stranded when the browser
@@ -755,8 +1167,64 @@ function rescueText(row) {
   return "-";
 }
 
-// ── Loudness chart (light canvas) ─────────────
+// ── Reproduce panel ────────────────────────────
+// The command and the source, exactly as /api/title reports them. Nothing here
+// is composed on the client: if the backend has no source URL for a title, the
+// panel says so rather than printing a command that would not run.
+function verifyBlock(d, lufsVal) {
+  const hasCmd = typeof d.reproduce === "string" && d.reproduce.trim();
+  if (!hasCmd && !d.source_url) {
+    return `
+<div class="field">
+  <span class="lbl">Check this yourself</span>
+  <p class="na-line">No source URL is recorded for this title, so there is no command to re-run. The figures above still come from <span style="font-family:var(--mono);font-style:normal">vault.findings</span>.</p>
+</div>`;
+  }
+  const expect = lufsVal != null
+    ? ` It should print <span class="mono">I: ${lufsVal.toFixed(1)} LUFS</span>, the integrated figure the check above used.`
+    : "";
+  const links = [];
+  if (d.source_url)  links.push(`<a href="${esc(d.source_url)}" target="_blank" rel="noopener">The source file</a>`);
+  if (d.details_url) links.push(`<a href="${esc(d.details_url)}" target="_blank" rel="noopener">Its archive.org record</a>`);
+  return `
+<div class="field">
+  <span class="lbl">Check this yourself</span>
+  <p class="verify-lede">Run ebur128 against the same source, over the same window.${expect}</p>
+  ${hasCmd ? `<pre class="cmd" id="verify-cmd">${esc(d.reproduce.trim())}</pre>` : ""}
+  <div class="verify-links">
+    ${hasCmd ? `<button class="btn-copy" onclick="copyCommand(this)">Copy command</button>` : ""}
+    ${links.join("")}
+    <span class="slip-note" id="verify-note"></span>
+  </div>
+</div>`;
+}
 
+// ── Defect events, joined to the loudness row that was live at each onset ────
+function eventsBlock(d) {
+  const events = Array.isArray(d.events) ? d.events : null;
+  if (!events || !events.length) return "";
+  const rows = events.map(e => {
+    const st = e.short_term_at_start != null
+      ? `${parseFloat(e.short_term_at_start).toFixed(1)} LUFS at onset`
+      : `<span class="na">no loudness row at onset</span>`;
+    const span = e.end_seconds != null && e.start_seconds != null
+      ? `${mmss(e.start_seconds)} to ${mmss(e.end_seconds)} (${(e.end_seconds - e.start_seconds).toFixed(1)}s)`
+      : mmss(e.start_seconds);
+    return `<div class="event">
+      <span class="kind">${esc(String(e.kind || "defect").replace(/_/g, " "))}</span>
+      <span class="at">${span}</span>
+      <span class="st">${st}</span>
+    </div>`;
+  }).join("");
+  return `
+<div class="field">
+  <span class="lbl">Defects, and how loud it was when each began</span>
+  <div class="events">${rows}</div>
+  <p class="chart-cap">Each defect carries the short-term loudness of the sample that was live when it started, joined out of ClickHouse with an ASOF LEFT JOIN against <span class="mono">vault.loudness_samples</span>. A black segment over a loud passage is a reel change; one over silence is damage.</p>
+</div>`;
+}
+
+// ── The loudness trace, as SVG ─────────────────
 // Where on the plot the slip's LISTEN timestamp lands. Placed by the points'
 // own `t` seconds, never by array index, so a window at 180s cannot land at
 // x=0 just because it is the first thing we know about. Returns null when the
@@ -777,69 +1245,223 @@ function listenMarkerX(data, worstWindow, W) {
   return frac * W;
 }
 
-function drawChart(canvasId, data, worstWindow) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const W = canvas.offsetWidth || 700;
-  const H = 56;
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext("2d");
+// What the trace is currently drawing, so a resize can redraw it at the new
+// width from the same rows instead of refetching.
+let tracePaint = null;
 
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, W, H);
-
-  if (!data.length) return;
-
-  const stVals = data.map(p => p.st).filter(v => v > -70);
-  if (!stVals.length) return;
-
-  const minV  = Math.min(...stVals, -30);
-  const maxV  = Math.max(...stVals, -10);
-  const range = maxV - minV || 1;
-  const py    = v => H - ((v - minV) / range) * H;
-  const tx    = i => (i / Math.max(data.length - 1, 1)) * W;
-
-  // Hairline at -23 LUFS (target)
-  const ty = py(-23);
-  ctx.strokeStyle = "#057dbc";
-  ctx.lineWidth   = 1;
-  ctx.setLineDash([4, 4]);
-  ctx.beginPath(); ctx.moveTo(0, ty); ctx.lineTo(W, ty); ctx.stroke();
-  ctx.setLineDash([]);
-
-  // Short-term LUFS line
-  ctx.strokeStyle = "#c81e1e";
-  ctx.lineWidth   = 1.5;
-  ctx.beginPath();
-  let first = true;
-  data.forEach((p, i) => {
-    if (p.st < -70) return;
-    const x = tx(i), y = py(p.st);
-    first ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    first = false;
-  });
-  ctx.stroke();
-
-  // Label -23
-  ctx.fillStyle = "#757575";
-  ctx.font      = "10px 'JetBrains Mono', monospace";
-  const labelY  = ty < 18 ? ty + 14 : ty - 4;
-  ctx.fillText("-23 LUFS", W - 64, labelY);
-
-  // Listen-point: the same passage, at the same time, the slip names.
-  const mx = listenMarkerX(data, worstWindow, W);
-  if (mx == null) return;
-  ctx.strokeStyle = "#1f1f1f";
-  ctx.lineWidth   = 1;
-  ctx.beginPath(); ctx.moveTo(mx, 0); ctx.lineTo(mx, H); ctx.stroke();
-
-  const stamp = mmss(worstWindow.quietest_at_seconds);
-  ctx.fillStyle = "#1f1f1f";
-  const tw = ctx.measureText(stamp).width;
-  ctx.fillText(stamp, Math.min(Math.max(mx + 3, 0), W - tw), 10);
+function traceBlock(d, target, tol, lufsVal) {
+  // The previous title's host is about to be discarded with the slip.
+  if (traceObserver) traceObserver.disconnect();
+  tracePaintedW = 0;
+  const chart = Array.isArray(d.loudness_chart) ? d.loudness_chart : [];
+  if (!chart.length) {
+    return `
+<div class="trace-wrap">
+  <p class="na-line">No loudness samples are stored for this title, so there is no trace to draw.</p>
+</div>`;
+  }
+  tracePaint = {
+    chart,
+    worstWindow: d.worst_window || null,
+    events: Array.isArray(d.events) ? d.events : [],
+    target, tol,
+  };
+  return `
+<div class="trace-wrap" id="trace-wrap">
+  <div id="trace-host"></div>
+  <div class="trace-readout" id="trace-readout"><span class="dim">Hover the trace to read a sample.</span></div>
+  <p class="chart-cap">${traceCaption(d, target, tol, lufsVal)}</p>
+</div>`;
 }
 
-// ── Triage ─────────────────────────────────────
+function traceCaption(d, target, tol, lufsVal) {
+  const n = d.sample_count != null ? Number(d.sample_count) : null;
+  const chart = d.loudness_chart || [];
+  const plotted = chart.length;
+  const t0 = Number(chart[0].t), t1 = Number(chart[chart.length - 1].t);
+  const step = n && n > 1 ? (t1 - t0) / (n - 1) : null;
+
+  const bits = [];
+  if (n) {
+    bits.push(`<span class="mono">${fmtInt(n)}</span> loudness rows for this title`);
+    if (step) bits.push(`one every <span class="mono">${step.toFixed(1)} s</span>`);
+    bits.push(`downsampled to <span class="mono">${fmtInt(plotted)}</span> points for the plot.`);
+  }
+  let s = bits.join(", ");
+  s += ` <span class="red">Red</span> is short-term loudness. <span class="blk">Black</span> is the running integrated value`;
+  s += lufsVal != null ? `, settling at <span class="mono">${lufsVal.toFixed(1)} LUFS</span>.` : ".";
+  s += ` The shaded band is the delivery target, <span class="mono">${target.toFixed(0)}${tol != null ? ` &plusmn;${tol.toFixed(1)}` : ""} LUFS</span>.`;
+  const silent = (chart.filter(p => Number(p.st) <= LUFS_FLOOR).length);
+  if (silent) s += ` The gap is <span class="mono">${fmtInt(silent)}</span> plotted samples under the <span class="mono">${LUFS_FLOOR} LUFS</span> gate, which is silence, not a quiet measurement.`;
+  return s;
+}
+
+// Redrawn at the width the column actually has, so the axis type stays at its
+// intended size instead of being scaled by the viewBox. The observer catches
+// column changes a window resize event does not report.
+let tracePaintedW = 0;
+const traceObserver = typeof ResizeObserver === "undefined"
+  ? null
+  : new ResizeObserver(() => paintTrace());
+
+function paintTrace() {
+  const host = document.getElementById("trace-host");
+  if (!host || !tracePaint) return;
+  const W = Math.max(host.clientWidth || 0, 280);
+  if (host.querySelector("svg") && Math.abs(W - tracePaintedW) < 2) return;
+  tracePaintedW = W;
+  host.innerHTML = traceSvg(tracePaint, W);
+  wireTraceHover(W);
+  if (traceObserver) traceObserver.observe(host);
+}
+
+function traceSvg(p, W) {
+  // A phone gets a shorter plot and a narrower gutter, so the trace keeps its
+  // shape instead of being crushed by axis furniture.
+  const narrow = W < 480;
+  const H = narrow ? 152 : 196, padL = narrow ? 38 : 52, padR = 14, padT = 14, padB = 24;
+  const chart = p.chart, target = p.target, tol = p.tol;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+
+  const t0 = Number(chart[0].t), t1 = Number(chart[chart.length - 1].t);
+  const tspan = (t1 - t0) || 1;
+
+  const vals = [];
+  chart.forEach(pt => {
+    const st = Number(pt.st), i = Number(pt.i);
+    if (Number.isFinite(st) && st > LUFS_FLOOR) vals.push(st);
+    if (Number.isFinite(i)  && i  > LUFS_FLOOR) vals.push(i);
+  });
+  vals.push(target);
+  const lo = Math.floor((Math.min(...vals) - 2) / 5) * 5;
+  const hi = Math.ceil((Math.max(...vals) + 2) / 5) * 5;
+  const vspan = (hi - lo) || 1;
+
+  const X = t => padL + ((Number(t) - t0) / tspan) * plotW;
+  const Y = v => padT + (1 - (Number(v) - lo) / vspan) * plotH;
+
+  const out = [];
+
+  // Target band first, so both traces read on top of it.
+  if (tol != null) {
+    const yTop = Y(target + tol), yBot = Y(target - tol);
+    out.push(`<rect x="${padL}" y="${yTop.toFixed(1)}" width="${plotW}" height="${(yBot - yTop).toFixed(1)}" fill="var(--band)"></rect>`);
+  }
+
+  // Loudness gridlines every 10 LU, labelled in the left margin.
+  for (let v = Math.ceil(lo / 10) * 10; v <= hi; v += 10) {
+    const y = Y(v);
+    out.push(`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="var(--hairline-soft)" stroke-width="1"></line>`);
+    out.push(`<text x="${padL - 8}" y="${(y + 3.5).toFixed(1)}" font-size="10" text-anchor="end">${v}</text>`);
+  }
+
+  // The target itself, dashed, labelled at the right edge.
+  const ty = Y(target);
+  out.push(`<line x1="${padL}" y1="${ty.toFixed(1)}" x2="${W - padR}" y2="${ty.toFixed(1)}" stroke="var(--link)" stroke-width="1" stroke-dasharray="4 4"></line>`);
+  out.push(`<text x="${W - padR}" y="${(ty - 5).toFixed(1)}" font-size="10" text-anchor="end" fill="var(--link)">${target.toFixed(0)} LUFS target</text>`);
+
+  // Time axis every 30 s of programme.
+  const tick = (tspan > 240 || narrow) ? 60 : 30;
+  for (let t = Math.ceil(t0 / tick) * tick; t <= t1; t += tick) {
+    const x = X(t);
+    out.push(`<line x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${(padT + plotH).toFixed(1)}" stroke="var(--hairline-soft)" stroke-width="1"></line>`);
+    out.push(`<text x="${x.toFixed(1)}" y="${(H - 8).toFixed(1)}" font-size="10" text-anchor="middle">${mmss(t)}</text>`);
+  }
+  out.push(`<line x1="${padL}" y1="${(padT + plotH).toFixed(1)}" x2="${W - padR}" y2="${(padT + plotH).toFixed(1)}" stroke="var(--hairline)" stroke-width="1"></line>`);
+
+  // Defect spans, if the backend joined any onto this title.
+  (p.events || []).forEach(e => {
+    if (e.start_seconds == null) return;
+    const x1 = X(e.start_seconds);
+    const x2 = e.end_seconds != null ? Math.max(X(e.end_seconds), x1 + 1) : x1 + 1;
+    out.push(`<rect x="${x1.toFixed(1)}" y="${padT}" width="${(x2 - x1).toFixed(1)}" height="${plotH.toFixed(1)}" fill="var(--fail)" fill-opacity="0.10"></rect>`);
+  });
+
+  // Short-term loudness, broken wherever the signal drops under the gate.
+  out.push(`<path d="${pathFor(chart, "st", X, Y)}" fill="none" stroke="var(--fail)" stroke-width="1.4" stroke-linejoin="round"></path>`);
+  // Running integrated loudness, which is the figure the spec check ran on.
+  out.push(`<path d="${pathFor(chart, "i", X, Y)}" fill="none" stroke="var(--ink)" stroke-width="1" stroke-linejoin="round"></path>`);
+
+  // The passage the slip cues, at the second it names.
+  const mx = listenMarkerX(chart, p.worstWindow, plotW);
+  if (mx != null) {
+    const x = padL + mx;
+    out.push(`<line x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${(padT + plotH).toFixed(1)}" stroke="var(--ink)" stroke-width="1"></line>`);
+    const stamp = mmss(p.worstWindow.quietest_at_seconds);
+    const anchor = x > W - padR - 70 ? "end" : "start";
+    const dx = anchor === "end" ? -4 : 4;
+    out.push(`<text x="${(x + dx).toFixed(1)}" y="${(padT + plotH - 5).toFixed(1)}" font-size="10" text-anchor="${anchor}" fill="var(--ink)">${stamp} quietest</text>`);
+  }
+
+  // Hover crosshair and hit area.
+  out.push(`<line id="trace-cross" x1="0" y1="${padT}" x2="0" y2="${(padT + plotH).toFixed(1)}" stroke="var(--ink)" stroke-width="1" stroke-dasharray="2 3" opacity="0"></line>`);
+  out.push(`<rect id="trace-hit" x="${padL}" y="${padT}" width="${plotW}" height="${plotH.toFixed(1)}" fill="transparent"></rect>`);
+
+  return `<svg class="trace-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img"
+     aria-label="Short-term and integrated loudness over the scanned window, against the ${target.toFixed(0)} LUFS delivery target">${out.join("")}</svg>`;
+}
+
+// One path, broken at every sample under the measurement gate, so silence reads
+// as a gap rather than as a line pinned to the floor.
+function pathFor(chart, key, X, Y) {
+  let d = "", pen = false;
+  chart.forEach(pt => {
+    const v = Number(pt[key]);
+    if (!Number.isFinite(v) || v <= LUFS_FLOOR) { pen = false; return; }
+    d += `${pen ? "L" : "M"}${X(pt.t).toFixed(1)} ${Y(v).toFixed(1)} `;
+    pen = true;
+  });
+  return d.trim();
+}
+
+function wireTraceHover(W) {
+  const hit = document.getElementById("trace-hit");
+  const cross = document.getElementById("trace-cross");
+  const out = document.getElementById("trace-readout");
+  if (!hit || !out || !tracePaint) return;
+  const chart = tracePaint.chart;
+  const t0 = Number(chart[0].t), t1 = Number(chart[chart.length - 1].t);
+  const padL = W < 480 ? 38 : 52, padR = 14, plotW = W - padL - padR;
+
+  const move = (ev) => {
+    const box = hit.getBoundingClientRect();
+    const x = ev.clientX - box.left;
+    const frac = Math.min(Math.max(x / (box.width || 1), 0), 1);
+    const t = t0 + frac * (t1 - t0);
+    let best = chart[0], bd = Infinity;
+    for (const p of chart) {
+      const dd = Math.abs(Number(p.t) - t);
+      if (dd < bd) { bd = dd; best = p; }
+    }
+    const st = Number(best.st), i = Number(best.i);
+    const stTxt = st > LUFS_FLOOR ? `${st.toFixed(1)} LUFS` : `under the ${LUFS_FLOOR} LUFS gate`;
+    const iTxt  = i  > LUFS_FLOOR ? `${i.toFixed(1)} LUFS` : "not yet integrated";
+    out.innerHTML = `${mmss(best.t)} <span class="dim">short-term</span> ${stTxt} <span class="dim">integrated</span> ${iTxt}`;
+    if (cross) {
+      const px = padL + frac * plotW;
+      cross.setAttribute("x1", px.toFixed(1));
+      cross.setAttribute("x2", px.toFixed(1));
+      cross.setAttribute("opacity", "1");
+    }
+  };
+  hit.addEventListener("mousemove", move);
+  hit.addEventListener("mouseleave", () => {
+    out.innerHTML = `<span class="dim">Hover the trace to read a sample.</span>`;
+    if (cross) cross.setAttribute("opacity", "0");
+  });
+}
+
+let traceResizeTimer = null;
+window.addEventListener("resize", () => {
+  clearTimeout(traceResizeTimer);
+  traceResizeTimer = setTimeout(paintTrace, 150);
+});
+
+// ── Triage: the work order ───────────────
+// The rendered work order, kept so a slip re-render does not wipe the report
+// the operator just paid 2 minutes of model time for.
+let lastWorkOrderHtml = null;
+
 async function runTriage() {
   const out = document.getElementById("triage-output");
   if (out) {
@@ -849,35 +1471,113 @@ async function runTriage() {
   try {
     const d = await fetch("/api/triage", { method: "POST" }).then(r => r.json());
     // Hold the report so the slip can quote the plan without a model call.
-    if (d && d.rescue_plan) lastTriage = d;
-    let text = "";
-    if (d.summary) {
-      text += `SUMMARY\n${d.summary}\n\n`;
-      text += `Titles: ${d.total_titles}  |  Failing: ${d.failing}  |  Passing: ${d.passing}\n`;
-      text += `Auto-fixable: ${d.auto_fixable}  |  Needs human: ${d.needs_human}\n\n`;
-      if (d.operator_note) text += `OPERATOR NOTE\n${d.operator_note}\n\n`;
-      if (d.rescue_plan && d.rescue_plan.length) {
-        text += "RESCUE PLAN\n" + "-".repeat(60) + "\n";
-        d.rescue_plan.forEach(p => {
-          text += `#${p.priority}  ${p.title || p.title_id}\n`;
-          text += `  Action:    ${p.action}\n`;
-          if (p.measured_lufs != null)
-            text += `  LUFS:      ${parseFloat(p.measured_lufs).toFixed(1)} (target -23, delta ${parseFloat(p.lufs_delta||0).toFixed(1)} LU)\n`;
-          text += `  Failures:  ${p.failures}\n`;
-          text += `  Rescue:    ${p.rescue_cost}\n`;
-          text += `  Rationale: ${p.rationale}\n\n`;
-        });
-      }
-      if (d.model) text += `Model: ${d.model}`;
-    } else {
-      text = JSON.stringify(d, null, 2);
-    }
-    if (out) out.textContent = text;
+    if (d && (d.queue || d.rescue_plan)) lastTriage = d;
+    lastWorkOrderHtml = workOrderHtml(d);
+    paintWorkOrder();
     // Re-render the current slip so its PLAN block picks up the fresh triage.
     if (selectedId) loadDetail(selectedId);
   } catch(e) {
-    if (out) out.textContent = `Error: ${e}`;
+    lastWorkOrderHtml = null;
+    if (out) { out.className = "triage-out visible"; out.textContent = `Error: ${e}`; }
   }
+}
+
+function paintWorkOrder() {
+  const out = document.getElementById("triage-output");
+  if (!out || !lastWorkOrderHtml) return;
+  out.className = "triage-out visible rendered";
+  out.innerHTML = lastWorkOrderHtml;
+  out.onclick = (e) => {
+    const row = e.target.closest(".wo-row");
+    if (row && row.dataset.tid) selectTitle(row.dataset.tid);
+  };
+}
+
+function laneOf(entry) {
+  return String(entry.lane || entry.action || "").toUpperCase();
+}
+
+// The agent run, typeset. Every line is a field the run returned: nothing is
+// summarised on the client, and a run that reports itself unverified says so in
+// the fail ink rather than reading like a clean result.
+function workOrderHtml(d) {
+  if (!d || (!d.summary && !d.queue && !d.rescue_plan)) {
+    return `<pre style="white-space:pre-wrap">${esc(JSON.stringify(d, null, 2))}</pre>`;
+  }
+  const queue = Array.isArray(d.queue) ? d.queue : (Array.isArray(d.rescue_plan) ? d.rescue_plan : []);
+  const parts = [];
+
+  const head = [];
+  if (d.run_id) head.push(`run ${esc(d.run_id)}`);
+  if (d.model) head.push(esc(d.model));
+  if (d.elapsed_s != null) head.push(`${parseFloat(d.elapsed_s).toFixed(1)}s`);
+  if (d.persisted_rows != null) head.push(`${fmtInt(d.persisted_rows)} rows written to vault.slips`);
+  if (head.length) parts.push(`<div class="wo-head">${head.join(" &nbsp;/&nbsp; ")}</div>`);
+
+  if (d.summary) parts.push(`<p class="wo-summary">${esc(d.summary)}</p>`);
+
+  // The audit line. Verified with nothing unsupported is the only clean case.
+  const unsupported = Array.isArray(d.unsupported_figures) ? d.unsupported_figures : [];
+  if (d.verified === true && !unsupported.length) {
+    parts.push(`<p class="wo-verified">Every figure above was traced back to a query result before this was shown.</p>`);
+  } else if (d.verified === false || unsupported.length) {
+    const list = unsupported.length
+      ? `: ${unsupported.map(u => esc(typeof u === "string" ? u : JSON.stringify(u))).join(", ")}`
+      : "";
+    parts.push(`<p class="wo-verified bad">This run did not trace every figure back to a query result${list}. Read the numbers above as the model's, not the archive's.</p>`);
+  }
+
+  if (queue.length) {
+    const rows = queue.map(e => {
+      const lane = laneOf(e);
+      const delta = e.lufs_delta != null ? `${parseFloat(e.lufs_delta).toFixed(1)} LU` : "";
+      const why = [e.rescue_cost, e.rationale].filter(Boolean).map(esc).join(" ");
+      return `<button class="wo-row" data-tid="${esc(e.title_id || "")}">
+  <span class="wo-rank">${e.rank != null ? e.rank : (e.priority != null ? e.priority : "")}</span>
+  <span class="wo-title">${esc(e.title || e.title_id)}</span>
+  <span class="wo-lane${lane.indexOf("HUMAN") > -1 ? " human" : ""}">${esc(lane)}</span>
+  <span class="wo-delta">${delta}</span>
+  <span class="wo-why">${why}</span>
+</button>`;
+    }).join("");
+    parts.push(`<div class="wo-queue">${rows}</div>`);
+    parts.push(`<p class="wo-caption">${fmtInt(queue.length)} titles in the queue, ranked by the agents. Click one to open its slip.</p>`);
+  }
+
+  if (d.operator_note) parts.push(`<p class="wo-note">${esc(d.operator_note)}</p>`);
+
+  // The SQL the agents actually ran. This is the run's evidence, so it is on the
+  // page rather than in a log file.
+  const queries = Array.isArray(d.queries) ? d.queries : [];
+  if (queries.length) {
+    const qs = queries.map(q => `
+<div class="wo-q">
+  <div class="wo-q-head">${esc(q.agent || "agent")} &nbsp;/&nbsp; ${esc(q.tool || "query")} &nbsp;/&nbsp; ${q.rows != null ? `${fmtInt(q.rows)} rows` : "no row count"}${q.blocked ? ` &nbsp;/&nbsp; <span class="blocked">blocked</span>` : ""}</div>
+  <pre>${esc(String(q.sql || q.query || "").trim())}</pre>
+</div>`).join("");
+    parts.push(`<details class="wo-sql"><summary>The SQL this run ran (${fmtInt(queries.length)} queries)</summary>${qs}</details>`);
+  }
+
+  const g = d.grafana_board;
+  if (g) {
+    if (g.ran) {
+      const url = grafanaUrl(g.publish);
+      parts.push(`<p class="wo-grafana">Board published${url ? `: <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>` : "."}</p>`);
+    } else {
+      parts.push(`<p class="wo-grafana skipped">Board step skipped${g.reason ? `: ${esc(g.reason)}` : "."} Nothing was published, and nothing here was drawn from it.</p>`);
+    }
+  }
+
+  return parts.join("");
+}
+
+// The board step returns its result as a fenced JSON string. A URL is only shown
+// when one can actually be read out of it.
+function grafanaUrl(publish) {
+  if (!publish) return null;
+  if (typeof publish === "object") return publish.dashboard_url || null;
+  const m = /https?:\/\/[^\s"'`]+/.exec(String(publish));
+  return m ? m[0] : null;
 }
 
 // ── MCP log colophon ───────────────────────────
@@ -899,19 +1599,20 @@ async function loadMCPLog() {
     container.innerHTML = `<div style="color:var(--body);font-family:var(--mono);font-size:12px;margin-bottom:12px">${d.total_logged} total logged</div>` +
       d.entries.map(e => `
 <div class="mcp-entry">
-  <span class="mcp-ts">${e.ts}</span>
-  <span class="mcp-tool"> [${e.tool}]</span>
-  <span style="color:var(--body);font-family:var(--mono);font-size:12px"> ${e.elapsed_s}s</span>
-  <div class="mcp-q">${(e.arguments?.query || JSON.stringify(e.arguments)).substring(0, 200)}</div>
-  <div class="mcp-res">${(e.result_preview || "").substring(0, 300)}</div>
+  <span class="mcp-ts">${esc(e.ts)}</span>
+  <span class="mcp-tool"> [${esc(e.tool)}]</span>
+  <span style="color:var(--body);font-family:var(--mono);font-size:12px"> ${esc(e.elapsed_s)}s</span>
+  <div class="mcp-q">${esc((e.arguments?.query || JSON.stringify(e.arguments)).substring(0, 200))}</div>
+  <div class="mcp-res">${esc((e.result_preview || "").substring(0, 300))}</div>
 </div>`).join("");
   } catch(e) {
-    container.innerHTML = `<div style="color:var(--fail);font-size:14px;margin-top:10px">Error: ${e}</div>`;
+    container.innerHTML = `<div style="color:var(--fail);font-size:14px;margin-top:10px">Error: ${esc(e)}</div>`;
   }
 }
 
 // ── Init ───────────────────────────────────────
-loadCatalog();
+// Stats first: it carries the target and the scan window the ledger orders by.
+loadStats().then(loadCatalog);
 </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 """Deterministic QC measurement over a media file.
 
-Every function shells out to ffmpeg/ffprobe. No model involved at this layer —
-the numbers a judge reproduces must come from the same tool the judge runs:
+Every function shells out to ffmpeg or ffprobe. No model is involved at this layer.
+The numbers a judge reproduces come from the same tool the judge runs:
 
   ffmpeg -i <file> -af ebur128=peak=true -f null -
 
@@ -190,8 +190,42 @@ def loudness_findings(measured: dict) -> list[Finding]:
 # --- structural video defects -------------------------------------------
 
 _BLACK   = re.compile(r"black_start:([\d.]+)\s+black_end:([\d.]+)\s+black_duration:([\d.]+)")
-_FREEZE  = re.compile(r"freeze_start:\s*([\d.]+)")
-_SILENCE = re.compile(r"silence_start:\s*(-?[\d.]+)")
+# freezedetect and silencedetect report a start line and, later, a matching end line.
+# Both are captured so a defect is a span rather than an instant: an event with no
+# duration renders as a zero-length span and tells an operator nothing about how much
+# of the master is affected.
+_FREEZE_START  = re.compile(r"freeze_start:\s*(-?[\d.]+)")
+_FREEZE_END    = re.compile(r"freeze_end:\s*(-?[\d.]+)")
+_SILENCE_START = re.compile(r"silence_start:\s*(-?[\d.]+)")
+_SILENCE_END   = re.compile(r"silence_end:\s*(-?[\d.]+)")
+
+
+def _spans(text: str, start_rx: re.Pattern, end_rx: re.Pattern,
+           window_seconds: int | None) -> list[dict]:
+    """Pair start lines with end lines in the order ffmpeg emitted them.
+
+    An event still running when the scan window closes has a start and no end. It is
+    kept, and closed at the end of the window, with `truncated` set so nothing
+    downstream reports a duration as if the whole event had been observed. Dropping it
+    would hide a defect; closing it at its own start time would claim it lasted no
+    time at all.
+    """
+    starts = [float(x) for x in start_rx.findall(text)]
+    ends = [float(x) for x in end_rx.findall(text)]
+    spans: list[dict] = []
+    for index, start in enumerate(starts):
+        if index < len(ends):
+            end, truncated = ends[index], False
+        else:
+            end = float(window_seconds) if window_seconds else start
+            truncated = True
+        spans.append({
+            "start": start,
+            "end": max(end, start),
+            "duration": max(end - start, 0.0),
+            "truncated": truncated,
+        })
+    return spans
 
 
 def measure_structural(path: str | Path, seconds: int | None = None,
@@ -211,10 +245,69 @@ def measure_structural(path: str | Path, seconds: int | None = None,
     ]
     return {
         "black_segments": blacks,
-        "freeze_events": [float(x) for x in _FREEZE.findall(text)],
-        "silence_events": [float(x) for x in _SILENCE.findall(text)],
+        "freeze_events": _spans(text, _FREEZE_START, _FREEZE_END, seconds),
+        "silence_events": _spans(text, _SILENCE_START, _SILENCE_END, seconds),
         "window_seconds": seconds,
     }
+
+
+def structural_events(measured: dict) -> list[tuple[str, float, float, str]]:
+    """One row per defect occurrence, as (kind, start_seconds, end_seconds, detail).
+
+    `structural_findings` below counts these into a pass/fail verdict, which is what
+    a spec check needs. This returns the occurrences themselves, which is what the
+    point-in-time join needs: "three black segments" cannot be joined to the loudness
+    at the moment the picture went black, and "black at 41.2s" can.
+
+    Every kind carries a real span. An event still running when the scan window closed
+    is closed at the window edge and says so, rather than being recorded as though it
+    lasted no time at all.
+    """
+    events: list[tuple[str, float, float, str]] = []
+    for segment in measured.get("black_segments", []):
+        events.append((
+            "black", float(segment["start"]), float(segment["end"]),
+            f"{segment['duration']:.1f}s of black",
+        ))
+    for kind, label in (("freeze", "frozen video"), ("silence", "silence below -50 dB")):
+        for span in measured.get(f"{kind}_events", []):
+            tail = (
+                f", still running at the {measured.get('window_seconds')}s scan edge"
+                if span.get("truncated") else ""
+            )
+            events.append((
+                kind, float(span["start"]), float(span["end"]),
+                f"{span['duration']:.1f}s of {label}{tail}",
+            ))
+    return events
+
+
+def subtitle_events(srt_text: str) -> list[tuple[str, float, float, str]]:
+    """One row per offending subtitle cue, so a slip can name the cue not the count."""
+    events: list[tuple[str, float, float, str]] = []
+    for cue in _parse_srt(srt_text):
+        duration = max(cue["end"] - cue["start"], 0.001)
+        chars = len(re.sub(r"<[^>]+>", "", cue["text"]).replace(" ", ""))
+        cps = chars / duration
+        if cps > NETFLIX_MAX_CPS:
+            events.append((
+                "subtitle_speed", cue["start"], cue["end"],
+                f"{cps:.0f} chars/sec against {NETFLIX_MAX_CPS:.0f} limit",
+            ))
+        if duration < NETFLIX_MIN_CUE_SECONDS:
+            events.append((
+                "subtitle_short", cue["start"], cue["end"],
+                f"cue held {duration:.2f}s against {NETFLIX_MIN_CUE_SECONDS:.2f}s minimum",
+            ))
+        for line in cue["lines"]:
+            plain = re.sub(r"<[^>]+>", "", line)
+            if len(plain) > NETFLIX_MAX_LINE_CHARS:
+                events.append((
+                    "subtitle_long_line", cue["start"], cue["end"],
+                    f"{len(plain)} characters on one line against {NETFLIX_MAX_LINE_CHARS}",
+                ))
+                break
+    return events
 
 
 def structural_findings(measured: dict, max_black_seconds: float = 2.0) -> list[Finding]:
@@ -226,7 +319,7 @@ def structural_findings(measured: dict, max_black_seconds: float = 2.0) -> list[
             measured=float(len(long_blacks)), target=0.0, unit="segments",
             passed=not long_blacks,
             detail="; ".join(
-                f"{b['start']:.1f}s–{b['end']:.1f}s ({b['duration']:.1f}s)" for b in long_blacks[:5]
+                f"{b['start']:.1f}s to {b['end']:.1f}s ({b['duration']:.1f}s)" for b in long_blacks[:5]
             ) or "no black segment over threshold",
             auto_fixable=False,
             rescue_cost="manual review: each segment needs a human to confirm reel-change vs damage",
@@ -236,8 +329,10 @@ def structural_findings(measured: dict, max_black_seconds: float = 2.0) -> list[
             spec="delivery spec: no frozen video",
             measured=float(len(measured["freeze_events"])), target=0.0, unit="events",
             passed=not measured["freeze_events"],
-            detail="; ".join(f"{e:.1f}s" for e in measured["freeze_events"][:5])
-                   or "no freeze detected",
+            detail="; ".join(
+                f"{span['start']:.1f}s to {span['end']:.1f}s ({span['duration']:.1f}s)"
+                for span in measured["freeze_events"][:5]
+            ) or "no freeze detected",
             auto_fixable=False,
             rescue_cost="manual review: each freeze must be inspected",
         ),

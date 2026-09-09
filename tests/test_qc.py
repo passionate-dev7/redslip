@@ -34,7 +34,7 @@ from qc.measure import (
 
 
 # ============================================================
-# Loudness gate — goes red AND green
+# Loudness gate: goes red AND green
 # ============================================================
 
 class TestLoudnessFindings:
@@ -69,7 +69,7 @@ class TestLoudnessFindings:
         assert not ebu.passed, "-24.01 LUFS is outside ±1 LU"
 
     def test_werewolf_dormitory_fails_both(self):
-        """-18.0 LUFS is 5 LU loud — fails both EBU R128 and ATSC A/85."""
+        """-18.0 LUFS is 5 LU loud: fails both EBU R128 and ATSC A/85."""
         findings = loudness_findings(self._lm(-18.0))
         ebu  = next(f for f in findings if f.check == "integrated_loudness_ebu_r128")
         atsc = next(f for f in findings if f.check == "integrated_loudness_atsc_a85")
@@ -107,7 +107,7 @@ class TestLoudnessFindings:
 
 
 # ============================================================
-# MUTATION TEST — prove the gate breaks when threshold changes
+# MUTATION TEST: prove the gate breaks when threshold changes
 # ============================================================
 
 class TestMutationLoudness:
@@ -145,10 +145,22 @@ class TestMutationLoudness:
 
 class TestStructuralFindings:
     def _sm(self, blacks=None, freeze=None, silence=None) -> dict:
+        """A measured structural result.
+
+        `freeze` and `silence` take start times for brevity and are expanded into the
+        spans measure_structural actually produces, so these tests keep exercising the
+        real shape rather than a simpler one of their own invention.
+        """
+        def spans(starts):
+            return [
+                {"start": at, "end": at + 3.0, "duration": 3.0, "truncated": False}
+                for at in (starts or [])
+            ]
+
         return {
             "black_segments": blacks or [],
-            "freeze_events":  freeze  or [],
-            "silence_events": silence or [],
+            "freeze_events":  spans(freeze),
+            "silence_events": spans(silence),
             "window_seconds": 120,
         }
 
@@ -177,7 +189,7 @@ class TestStructuralFindings:
         assert not ff.passed
 
     def test_structural_not_auto_fixable(self):
-        """Structural defects always require human review — not auto_fixable."""
+        """Structural defects always require human review: not auto_fixable."""
         sm = self._sm(
             blacks=[{"start": 10.0, "end": 14.0, "duration": 4.0}],
             freeze=[20.0],
@@ -243,7 +255,7 @@ class TestSubtitleFindings:
 
 class TestNonEmptyCatalog:
     def test_catalog_raises_on_empty(self):
-        """catalog_summary() must raise RuntimeError when empty — not return []."""
+        """catalog_summary() must raise RuntimeError when empty: not return []."""
         # Import here so test can skip if clickhouse_connect not available
         pytest.importorskip("clickhouse_connect", reason="clickhouse_connect not in test env")
         import qc.store as s

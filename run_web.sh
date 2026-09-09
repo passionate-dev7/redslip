@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run the VAULT web UI (development mode).
+# Serve Redslip locally. Reads ClickHouse and Vertex config from the environment.
 set -e
 cd "$(dirname "$0")"
 export PYTHONPATH="."
