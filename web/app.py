@@ -31,6 +31,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 
 from qc import mcp_log as mcp_log_rules
+from qc import query_cost
 from qc import store
 
 log = logging.getLogger(__name__)
@@ -400,6 +401,32 @@ def _persist(order: dict) -> int:
     return stored
 
 
+def _price_queries(order: dict) -> int:
+    """Attach ClickHouse's own cost to each statement the crew composed.
+
+    Best effort by construction. The costs come from `system.query_log`, which is a
+    read against the same server the run just finished using, and a run that produced a
+    correct work order must not be reported as failed because an accounting table was
+    slow. On any error the statements keep their row counts and simply carry no cost,
+    which the interface renders as unpriced rather than as free.
+    """
+    queries = order.get("queries") or []
+    if not queries:
+        return 0
+    try:
+        return query_cost.annotate(
+            queries,
+            since_epoch=order.get("started_epoch") or 0,
+            ch=_ch(),
+            # A judge is watching a request finish. One flush interval is the most this
+            # is allowed to spend before it gives up and says the cost is not there yet.
+            wait_s=8.0,
+        )
+    except Exception as exc:
+        log.warning("query cost lookup failed: %s", exc)
+        return 0
+
+
 def _log_queries(order: dict) -> None:
     MCP_LOG.parent.mkdir(parents=True, exist_ok=True)
     with MCP_LOG.open("a") as fh:
@@ -439,7 +466,11 @@ async def triage_stream():
                 try:
                     written = _persist(final)
                     _log_queries(final)
+                    # Priced after the writeback, so a slow accounting table delays the
+                    # cost line and never the queue itself.
+                    priced = _price_queries(final)
                     yield f"data: {json.dumps({'type': 'persisted', 'rows': written, 'table': 'vault.slips', 'run_id': final.get('run_id')})}\n\n"
+                    yield f"data: {json.dumps({'type': 'cost', 'run_id': final.get('run_id'), 'priced': priced, 'queries': jsonable_encoder(final.get('queries') or [])})}\n\n"
                 except Exception as exc:
                     yield f"data: {json.dumps({'type': 'error', 'message': f'writeback failed: {exc}'})}\n\n"
         except (crew.GeminiRequired, crew.GrafanaRequired) as exc:
@@ -470,6 +501,7 @@ async def triage():
             raise HTTPException(status_code=502, detail="crew produced no work order")
         final["persisted_rows"] = _persist(final)
         _log_queries(final)
+        final["priced_queries"] = _price_queries(final)
         return final
     except (crew.GeminiRequired, crew.GrafanaRequired) as exc:
         raise HTTPException(status_code=503, detail=str(exc))
@@ -478,6 +510,21 @@ async def triage():
     except Exception as exc:
         log.exception("crew failed")
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.get("/api/query-cost")
+async def api_query_cost():
+    """What each of the two query shapes costs, from ClickHouse's own summary header.
+
+    Live rather than a captured file, because a cost claim that was true once is a
+    screenshot. Both figures are the server's: `read_rows` here is ClickHouse's count
+    of rows it touched, which is the number the rollup argument is actually about.
+    Rows returned would say nothing, both shapes return a handful.
+    """
+    try:
+        return query_cost.shape_costs(ch=_ch())
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
 
 
 @app.get("/api/slips")

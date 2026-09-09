@@ -820,6 +820,9 @@ async def run_crew(timeout_s: float = 300.0):
         "run_id": run_id,
         "model": MODEL,
         "elapsed_s": round(time.time() - started, 1),
+        # When the run began, so the caller can price the statements above against
+        # system.query_log without matching anything older than this run.
+        "started_epoch": started,
         "queries": [
             {k: entry.get(k) for k in ("agent", "tool", "sql", "rows", "blocked", "at")}
             for entry in trace

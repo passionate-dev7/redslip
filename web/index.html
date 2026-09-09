@@ -687,6 +687,10 @@ pre.cmd {
 .wo-q { margin-top: 12px; }
 .wo-q-head { font: 400 12px/1.5 var(--mono); color: var(--body); }
 .wo-q-head .blocked { color: var(--fail); }
+/* The cost sits under the statement it prices, so the two are read as one object. */
+.wo-q-cost { font: 400 12px/1.6 var(--mono); color: var(--ink); margin-top: 4px; }
+.wo-q-cost .dim { color: var(--body); }
+.wo-q-cost.dim { color: var(--body); }
 .wo-q pre {
   font: 400 12px/1.6 var(--mono);
   color: var(--ink-soft);
@@ -807,6 +811,15 @@ details > summary:hover { color: var(--ink); }
   <details id="mcp-details" ontoggle="handleMcpToggle(this)">
     <summary>Queries the agent ran (MCP log)</summary>
     <div class="mcp-entries" id="mcp-entries">
+      <div style="color:var(--body);font-size:14px;margin-top:10px">Open to load.</div>
+    </div>
+  </details>
+  <!-- The storage argument, priced by the server rather than asserted here. Asked
+       live on open, so it is the cost of this catalog as it stands and not a figure
+       captured on a day that has passed. -->
+  <details id="cost-details" ontoggle="handleCostToggle(this)">
+    <summary>What a query costs here (ClickHouse's own summary)</summary>
+    <div class="mcp-entries" id="cost-entries">
       <div style="color:var(--body);font-size:14px;margin-top:10px">Open to load.</div>
     </div>
   </details>
@@ -2228,8 +2241,9 @@ function workOrderHtml(d) {
 <div class="wo-q">
   <div class="wo-q-head">${esc(q.agent || "agent")} &nbsp;/&nbsp; ${esc(q.tool || "query")} &nbsp;/&nbsp; ${q.rows != null ? `${fmtInt(q.rows)} rows` : "no row count"}${q.blocked ? ` &nbsp;/&nbsp; <span class="blocked">blocked</span>` : ""}</div>
   <pre>${esc(String(q.sql || q.query || "").trim())}</pre>
+  ${costLine(q)}
 </div>`).join("");
-    parts.push(`<details class="wo-sql"><summary>The SQL this run ran (${fmtInt(queries.length)} queries)</summary>${qs}</details>`);
+    parts.push(`<details class="wo-sql"><summary>The SQL this run ran (${fmtInt(queries.length)} queries)</summary>${qs}<p class="wo-caption">Rows read is what the server touched, not what came back, and it is read out of <code>system.query_log</code> rather than counted here.</p></details>`);
   }
 
   const g = d.grafana_board;
@@ -2243,6 +2257,35 @@ function workOrderHtml(d) {
   }
 
   return parts.join("");
+}
+
+// What one statement cost, in ClickHouse's own terms.
+//
+// A blocked statement gets nothing: it never reached the server, so it has no cost,
+// and a "0 rows read" under a refusal would read as a query that ran and found
+// nothing. A statement whose accounting has not been flushed yet says so, because an
+// unknown cost and a free query are different facts.
+function costLine(q) {
+  if (q.blocked) return "";
+  const c = q.cost;
+  if (!c) return "";
+  if (c.unavailable) {
+    return `<div class="wo-q-cost dim">Cost: ${esc(c.unavailable)}.</div>`;
+  }
+  const bits = [
+    `${fmtInt(c.read_rows)} rows read`,
+    `${fmtBytes(c.read_bytes)} read`,
+    `${fmtInt(c.query_duration_ms)} ms`,
+  ];
+  return `<div class="wo-q-cost">${bits.join(" &nbsp;/&nbsp; ")} <span class="dim">from system.query_log, query ${esc(String(c.query_id || "").slice(0, 8))}</span></div>`;
+}
+
+function fmtBytes(n) {
+  const v = Number(n);
+  if (!isFinite(v)) return "?";
+  if (v < 1024) return `${v} B`;
+  if (v < 1024 * 1024) return `${(v / 1024).toFixed(1)} kB`;
+  return `${(v / 1048576).toFixed(1)} MB`;
 }
 
 // The board step returns its result as a fenced JSON string. A URL is only shown
@@ -2281,6 +2324,41 @@ async function loadMCPLog() {
 </div>`).join("");
   } catch(e) {
     container.innerHTML = `<div style="color:var(--fail);font-size:14px;margin-top:10px">Error: ${esc(e)}</div>`;
+  }
+}
+
+// ── What a query costs ─────────────────────────
+// The two shapes, priced by ClickHouse and not by this page. Rows READ is the
+// number that carries the argument: the ranking's cost tracks how many titles exist,
+// the percentile query's tracks how much audio was measured. Elapsed is shown next to
+// it rather than omitted, because at this catalog size the scan is sometimes the
+// faster of the two and a panel that hid that would be an advert.
+let costLoaded = false;
+
+function handleCostToggle(el) {
+  if (el.open && !costLoaded) loadQueryCost();
+}
+
+async function loadQueryCost() {
+  if (costLoaded) return;
+  costLoaded = true;
+  const box = document.getElementById("cost-entries");
+  box.innerHTML = `<div style="color:var(--body);font-size:14px;margin-top:10px">Asking ClickHouse...</div>`;
+  try {
+    const r = await fetch("/api/query-cost");
+    if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+    const d = await r.json();
+    const shapes = (d.shapes || []).map(s => `
+<div class="mcp-entry">
+  <span class="mcp-tool">[${esc(s.name)}]</span>
+  <span style="color:var(--body);font-family:var(--mono);font-size:12px"> reads ${esc(s.reads)}</span>
+  <div class="mcp-q">${esc(s.sql)}</div>
+  <div class="wo-q-cost">${fmtInt(s.read_rows)} rows read &nbsp;/&nbsp; ${fmtBytes(s.read_bytes)} read &nbsp;/&nbsp; ${fmtInt(s.result_rows)} rows returned &nbsp;/&nbsp; ${s.elapsed_ms} ms <span class="dim">cost grows with ${esc(s.grows_with)}</span></div>
+</div>`).join("");
+    box.innerHTML = shapes + `<p class="wo-caption">${esc(d.note)}</p>`;
+  } catch(e) {
+    costLoaded = false;
+    box.innerHTML = `<div style="color:var(--fail);font-size:14px;margin-top:10px">Could not read the cost: ${esc(e)}</div>`;
   }
 }
 
