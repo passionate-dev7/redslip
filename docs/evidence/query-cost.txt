@@ -1,0 +1,44 @@
+What each query shape costs, read from ClickHouse's own response summary.
+
+Captured at 2026-09-09T17:12:22.664537+00:00 against ctmiqkvdfg.us-central1.gcp.clickhouse.cloud.
+vault.loudness_samples holds 24017 rows at capture time.
+
+Reproduce:
+  source scripts/cloudenv.sh
+  .venv/bin/python scripts/capture_query_cost.py
+
+--- ranking ---
+
+SELECT title_id, title, verdict, lane, failures, integrated_lufs, lufs_delta
+FROM vault.fleet
+ORDER BY lufs_delta DESC
+LIMIT 12
+
+  rows read      320
+  bytes read     11372
+  rows returned  12
+  elapsed        16.5 ms
+
+--- percentiles ---
+
+SELECT title_id,
+       quantile(0.1)(short_term) AS p10,
+       quantile(0.5)(short_term) AS p50,
+       quantile(0.9)(short_term) AS p90,
+       max(short_term) - min(short_term) AS spread_lu
+FROM vault.loudness_samples
+WHERE short_term > -70
+GROUP BY title_id
+ORDER BY spread_lu DESC
+LIMIT 8
+
+  rows read      24017
+  bytes read     120680
+  rows returned  8
+  elapsed        5.5 ms
+
+The ranking reads a rollup, so its cost is a function of how many titles exist,
+not how much audio was measured: 320 rows against a table of 24017.
+The percentile query is the one that pays for the stream: 24017 rows.
+Both answers are correct. Only one of them gets more expensive as the archive
+grows in length rather than in title count.
