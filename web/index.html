@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Redslip: delivery rejection ledger</title>
+<!-- The reject mark itself, so the tab carries the product rather than a 404. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23ffffff'/%3E%3Cpath d='M4 27 L28 5' stroke='%23c81e1e' stroke-width='6' stroke-linecap='square'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://archive.org" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -12,7 +15,13 @@
    for display, in place of the default editorial serif the design read flagged
    as a tell. Source Serif 4 reads. System sans is the Apercu stand-in.
    JetBrains Mono is for LUFS numbers only. White stock, black ink, one link
-   blue, fail red. Radius 0. Hairline rules, no cards, no shadows, no dark mode. */
+   blue, fail red. Radius 0. Hairline rules, no cards, no shadows, no dark mode.
+
+   Two surfaces, not one. Paper carries the argument; the bed is the black a
+   film frame sits on, and it is the only place an image is ever shown. Nothing
+   decorative is ever set on the bed, so black on this page always means there
+   is a frame of a film in it. --fail-bed is the same reject red lifted to
+   stay legible against the bed; it is not a second accent. */
 :root {
   --ink:      #000000;
   --ink-soft: #1a1a1a;
@@ -23,6 +32,12 @@
   --link:     #057dbc;
   --fail:     #c81e1e;
   --band:     rgba(5,125,188,.09);
+
+  --bed:      #0b0b0b;
+  --bed-edge: #2e2e2e;
+  --bed-mute: #8d8d8d;
+  --bed-ink:  #ededed;
+  --fail-bed: #f4553f;
 
   --display: 'Newsreader', 'Times New Roman', Georgia, serif;
   --read:    'Source Serif 4', Georgia, 'Times New Roman', serif;
@@ -42,35 +57,155 @@ body {
 }
 
 /* Masthead: the wordmark on the left, the measurement imprint on the right,
-   the way a print masthead carries its impressum. 2px rule under both. */
+   the way a print masthead carries its impressum. The standfirst is set at
+   display size because it is the finding, not a label: it fills the space to
+   the right of the wordmark that otherwise reads as a hole. 2px rule under the
+   whole header, below the reel. */
 header {
   border-bottom: 2px solid var(--ink);
-  padding: 30px 44px 20px;
+  padding: 30px 44px 0;
 }
 .masthead-row {
   display: grid;
   grid-template-columns: 1fr minmax(380px, 46ch);
   gap: 44px;
-  /* The wordmark sits down on the rule, the way a masthead does in print, so the
-     imprint beside it does not leave a hole under the standfirst. */
-  align-items: end;
+  align-items: start;
+  padding-bottom: 22px;
 }
 .masthead {
   font-family: var(--display);
-  font-size: 64px;
+  font-size: 76px;
   font-weight: 500;
-  line-height: 0.9;
-  letter-spacing: -1.8px;
+  line-height: 0.84;
+  letter-spacing: -2.4px;
   color: var(--ink);
 }
+/* The finding, in words, from the catalog that is already on the page. */
 .standfirst {
-  font-family: var(--read);
-  font-size: 19px;
-  line-height: 1.45;
-  color: var(--body);
-  max-width: 62ch;
-  margin-top: 12px;
+  font-family: var(--display);
+  font-size: 31px;
+  font-weight: 400;
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  color: var(--ink-soft);
+  max-width: 25ch;
+  margin-top: 20px;
 }
+.standfirst .n {
+  font-family: var(--mono);
+  font-size: 27px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fail);
+  letter-spacing: -0.5px;
+}
+.standfirst .n.all { color: var(--ink); }
+.standfirst.loading { color: var(--body); font-family: var(--read); font-size: 19px; font-style: italic; max-width: 46ch; }
+
+/* ── The bed ────────────────────────────────────────────────────────────────
+   One frame of one film. Every image on this page is one of these, extracted
+   from the file the numbers were measured from, and it is always on black with
+   the frame's own timecode burnt into the corner the way a QC transfer carries
+   one. object-fit is contain, never cover: a 4:3 title pillarboxes rather than
+   being cropped to look tidier than it is. */
+.cell {
+  position: relative;
+  display: block;
+  background: var(--bed);
+  overflow: hidden;
+}
+.cell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity .32s ease;
+}
+.cell img.ready { opacity: 1; }
+.cell .tc {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  font: 400 9px/1 var(--mono);
+  letter-spacing: .3px;
+  color: var(--bed-ink);
+  background: rgba(0,0,0,.66);
+  padding: 3px 4px;
+  font-variant-numeric: tabular-nums;
+}
+.cell .tc.approx { color: #d7c8a8; }
+/* No frame is never a grey box. It says so, in the same italic serif an
+   unmeasured number is set in. */
+.cell .frame-na {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px 6px;
+  font-family: var(--read);
+  font-style: italic;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--bed-mute);
+}
+
+/* ── The reel ───────────────────────────────────────────────────────────────
+   Twenty titles across the foot of the masthead, worst first, full bleed on the
+   bed. Left to right the deltas fall, so the strip is the ranking as well as the
+   archive. It is the page's index of record: clicking a frame opens that slip. */
+.reel { margin: 0 -44px; background: var(--bed); }
+.reel-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 1px;
+  background: var(--bed-edge);
+  border-top: 1px solid var(--bed-edge);
+}
+.reel-cell {
+  display: block;
+  background: var(--bed);
+  border: 0;
+  padding: 0 0 6px;
+  margin: 0;
+  cursor: pointer;
+  text-align: center;
+  position: relative;
+  font: inherit;
+  color: inherit;
+}
+.reel-cell .cell { aspect-ratio: 16 / 9; }
+.reel-cell .delta {
+  display: block;
+  font: 400 10px/1.4 var(--mono);
+  color: var(--bed-mute);
+  padding-top: 5px;
+  font-variant-numeric: tabular-nums;
+}
+.reel-cell.reject .delta { color: var(--fail-bed); }
+/* Absence keeps its italic serif on the bed too, at the bed's own muted ink. */
+.reel-cell .delta .unmeasured { font-family: var(--read); font-style: italic; font-size: 9.5px; color: var(--bed-mute); }
+.reel-cell:hover .cell img { opacity: .62; }
+.reel-cell.selected { background: #1c1614; }
+.reel-cell.selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--fail);
+  pointer-events: none;
+}
+.reel-cell:focus-visible { outline: 2px solid var(--bed-ink); outline-offset: -2px; }
+.reel-cap {
+  font-family: var(--read);
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--body);
+  padding: 9px 0 12px;
+  max-width: 96ch;
+}
+.reel-cap .mono { font-family: var(--mono); font-size: 12.5px; color: var(--ink-soft); }
 
 /* The imprint: the ClickHouse workload, in the ledger's voice. Figures in mono,
    the table they came out of beside them, the honest projection last. */
@@ -138,25 +273,37 @@ header {
 }
 .dateline b { color: var(--ink); font-weight: 700; }
 
+/* The index, and down its left edge a contact sheet: one frame per title, each
+   one that film at the second its worst reading lands. The frames are the same
+   images the reel loads, at the same width, so the column costs no extra
+   request. */
 .titles { list-style: none; }
 .title-line {
-  display: block;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 15px;
+  align-items: start;
   width: 100%;
   text-align: left;
   background: none;
+  font: inherit;
+  color: inherit;
   border: none;
   border-bottom: 1px solid var(--hairline-soft);
-  padding: 13px 0 12px;
+  padding: 12px 0;
   cursor: pointer;
   border-left: 2px solid transparent;
   padding-left: 0;
   transition: border-color .12s, background .12s;
 }
+.title-line .cell { aspect-ratio: 16 / 9; }
 .title-line:hover { background: #fafafa; }
+.title-line:hover .cell img { opacity: .78; }
 .title-line.selected {
-  border-left: 2px solid var(--ink);
+  border-left: 2px solid var(--fail);
   padding-left: 12px;
 }
+.title-line:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 .title-name {
   font-family: var(--read);
   font-size: 19px;
@@ -272,8 +419,6 @@ header {
   display: block;
   margin-bottom: 7px;
 }
-.listen .time { font-family: var(--mono); font-size: 22px; color: var(--ink); font-variant-numeric: tabular-nums; }
-.listen .sub { font-family: var(--mono); font-size: 13px; color: var(--body); margin-top: 4px; }
 .plan-text {
   font-family: var(--read);
   font-size: 17px;
@@ -313,6 +458,89 @@ header {
 .chart-cap .mono { font-family: var(--mono); font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .chart-cap .red  { color: var(--fail); }
 .chart-cap .blk  { color: var(--ink); }
+
+/* ── The strip under the trace ──────────────────────────────────────────────
+   The scanned window as film, on the trace's own x axis and inside the trace's
+   own gutters, so a frame sits directly under the second it was taken at. The
+   cell holding the quietest passage is bracketed in the reject red, which is the
+   same second the trace marks above it. */
+.strip {
+  position: relative;
+  display: flex;
+  gap: 1px;
+  background: var(--bed-edge);
+  border-bottom: 1px solid var(--hairline);
+  margin-top: 2px;
+}
+.strip-mark {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--fail);
+  pointer-events: none;
+  z-index: 2;
+}
+.strip .cell {
+  flex: 1 1 0;
+  min-width: 0;
+  aspect-ratio: 16 / 9;
+}
+.strip .cell.hit::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--fail);
+  pointer-events: none;
+}
+
+/* The frame at the defect, at the size the argument deserves, with the numbers
+   that condemn that second set beside it. */
+.defect {
+  display: grid;
+  grid-template-columns: minmax(0, 46%) minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+  margin-top: 10px;
+}
+.defect .cell { aspect-ratio: 16 / 9; }
+.defect .cell .tc { font-size: 11px; padding: 5px 7px; }
+.defect-read .time {
+  font-family: var(--mono);
+  font-size: 34px;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+}
+.defect-read .st {
+  font-family: var(--mono);
+  font-size: 15px;
+  color: var(--fail);
+  margin-top: 9px;
+  font-variant-numeric: tabular-nums;
+}
+.defect-read .st .dim { color: var(--body); }
+.defect-read p {
+  font-family: var(--read);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--body);
+  margin-top: 10px;
+}
+.defect-read p .mono { font-family: var(--mono); font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.defect-read .approx.exact { font-style: normal; border-left-color: var(--ink); }
+.defect-read .approx {
+  font-family: var(--read);
+  font-style: italic;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--body);
+  border-left: 2px solid var(--hairline);
+  padding-left: 11px;
+  margin-top: 12px;
+}
 
 /* Defects, joined to the loudness row that was live when each one began. */
 .events { border-top: 1px solid var(--hairline); }
@@ -500,21 +728,43 @@ details > summary:hover { color: var(--ink); }
 .mcp-q    { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); margin-top: 4px; word-break: break-all; }
 .mcp-res  { font-family: var(--mono); font-size: 12px; color: var(--body); margin-top: 3px; }
 
+@media (max-width: 1180px) {
+  .defect { grid-template-columns: 1fr; gap: 16px; }
+  .defect .cell { max-width: 460px; }
+}
 @media (max-width: 1120px) {
   .masthead-row { grid-template-columns: 1fr; gap: 22px; }
+  .standfirst { max-width: 34ch; }
   .imprint { border-left: none; border-top: 1px solid var(--hairline); padding-left: 0; padding-top: 14px; max-width: 68ch; }
 }
 @media (max-width: 900px) {
-  header { padding: 24px 24px 18px; }
-  .masthead { font-size: 52px; letter-spacing: -1.4px; }
+  header { padding: 24px 24px 0; }
+  .masthead { font-size: 54px; letter-spacing: -1.6px; }
+  .standfirst { font-size: 25px; max-width: 30ch; margin-top: 14px; }
+  .standfirst .n { font-size: 22px; }
+  .reel { margin: 0 -24px; }
+  /* Below the point where twenty cells stay legible the reel scrolls rather
+     than shrinking each frame into a smear. */
+  .reel-strip {
+    grid-auto-columns: 84px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
   .sheet { grid-template-columns: 1fr; }
   .ledger { border-right: none; border-bottom: 1px solid var(--ink); padding: 20px 24px 30px; }
+  .title-line { grid-template-columns: 84px minmax(0, 1fr); gap: 13px; }
   .slip { padding: 26px 24px 50px; }
   .slip-title { font-size: 40px; }
   .colophon { margin: 0 24px; }
   .event { flex-wrap: wrap; }
   .event .kind { min-width: 0; }
   .event .st { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell img { transition: none; }
+  * { scroll-behavior: auto; }
 }
 </style>
 </head>
@@ -524,13 +774,20 @@ details > summary:hover { color: var(--ink); }
   <div class="masthead-row">
     <div>
       <h1 class="masthead">Redslip</h1>
-      <p class="standfirst">The titles in this archive that the delivery spec would reject today, worst first.</p>
+      <p class="standfirst loading" id="standfirst">Reading the catalog...</p>
     </div>
     <aside class="imprint" id="imprint">
       <span class="lbl">Measured in ClickHouse</span>
       <p class="imprint-note">Reading the row counts...</p>
     </aside>
   </div>
+
+  <!-- The reel: every measured title, worst first, each shown at the second its
+       worst reading lands. Painted from the catalog, not from a fixture. -->
+  <div class="reel">
+    <div class="reel-strip" id="reel" role="tablist" aria-label="The archive, worst first"></div>
+  </div>
+  <p class="reel-cap" id="reel-cap"></p>
 </header>
 
 <div class="sheet">
@@ -576,6 +833,241 @@ function esc(s) {
 function fmtInt(n) {
   const v = Number(n);
   return Number.isFinite(v) ? v.toLocaleString("en-US") : null;
+}
+
+// ── Frames ─────────────────────────────────────────────────────────────────
+// Every image on this page is a frame of the film the row is about, at a second
+// the archive actually measured. There is no other kind of image here.
+//
+// First choice is /api/frame, which runs ffmpeg against the same source_url the
+// LUFS figure was measured from, so the picture and the number describe one file
+// at one instant. That endpoint refuses a t outside the scanned window, so the
+// page cannot show a frame it holds no measurement for.
+//
+// Fallback is the frame set Internet Archive derived for the item itself. Those
+// land on a 54 to 60 second grid, so the nearest one can be a long way from the
+// second that failed. It is then labelled with its own timecode, prefixed with a
+// tilde, and the panel states the distance in words. A frame captioned as the
+// defect when it is 27 seconds away would be a lie, and the tilde is what stops
+// this file telling it.
+//
+// Nothing is ever substituted for a frame. A title with neither prints the
+// absence in the same italic serif an unmeasured number is set in.
+
+const FRAME_W = 192;         // one width for the reel and the ledger, so a title
+                             // costs one request however often it appears
+const FRAME_W_LARGE = 640;
+
+function frameApiSrc(titleId, t, w) {
+  return `/api/frame/${encodeURIComponent(titleId)}?t=${Number(t).toFixed(1)}&w=${w}`;
+}
+
+// The second a title is shown at: the one its own rollup names as the quietest
+// sustained passage. Null when nothing was stored, and then no frame is drawn.
+function frameTimeFor(row) {
+  if (!row) return null;
+  const direct = row.listen_at_seconds;
+  if (direct != null && Number.isFinite(Number(direct))) return Number(direct);
+  const w = (detailCache[row.title_id] || {}).worst_window;
+  if (w && w.quietest_at_seconds != null) return Number(w.quietest_at_seconds);
+  return null;
+}
+
+// The measured source, from whichever payload already carries it. /api/catalog
+// serves it per row; older deployments only expose it on /api/title, so the
+// per-title read is kept as the path of last resort rather than assumed away.
+const sourcePromises = {};
+function sourceUrl(titleId) {
+  const row = allRows.find(r => r.title_id === titleId);
+  if (row && row.source_url) return Promise.resolve(row.source_url);
+  const cached = detailCache[titleId];
+  if (cached) return Promise.resolve(cached.source_url || null);
+  if (!sourcePromises[titleId]) {
+    sourcePromises[titleId] = fetch(`/api/title/${encodeURIComponent(titleId)}`)
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d) detailCache[titleId] = d; return d ? d.source_url || null : null; })
+      .catch(() => null);
+  }
+  return sourcePromises[titleId];
+}
+
+// The frames Internet Archive derived for the item, with the second each one was
+// taken at read out of its filename. Fetched once per title.
+const archiveIndexCache = {};
+function archiveFrames(titleId) {
+  if (archiveIndexCache[titleId]) return archiveIndexCache[titleId];
+  archiveIndexCache[titleId] = sourceUrl(titleId).then(src => {
+    const m = src && /archive\.org\/download\/([^/]+)\//.exec(src);
+    if (!m) return [];
+    const ident = m[1];
+    return fetch(`https://archive.org/metadata/${encodeURIComponent(ident)}/files`)
+      .then(r => (r.ok ? r.json() : { result: [] }))
+      .then(j => (j.result || [])
+        .map(f => {
+          const mm = /\.thumbs\/.*_(\d{6})\.jpg$/.exec(f.name || "");
+          return mm ? { t: parseInt(mm[1], 10), name: f.name } : null;
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.t - b.t)
+        .map(f => ({
+          t: f.t,
+          url: `https://archive.org/download/${encodeURIComponent(ident)}/` +
+               f.name.split("/").map(encodeURIComponent).join("/"),
+        })));
+  }).catch(() => []);
+  return archiveIndexCache[titleId];
+}
+
+function nearestArchiveFrame(titleId, t) {
+  return archiveFrames(titleId).then(list => {
+    if (!list.length) return null;
+    let best = list[0];
+    for (const f of list) if (Math.abs(f.t - t) < Math.abs(best.t - t)) best = f;
+    return best;
+  });
+}
+
+// One probe against a title and a second the page is going to request anyway, so
+// a deployment without the frame endpoint costs one failed request instead of
+// one per frame. The response is immutable, so the img that follows reads it out
+// of cache rather than asking twice.
+let frameApiProbe = null;
+function frameApiAvailable() {
+  if (frameApiProbe) return frameApiProbe;
+  const head = orderedTitles(allRows, specTarget())[0];
+  const t = head ? frameTimeFor(head) : null;
+  if (!head || t == null) return (frameApiProbe = Promise.resolve(false));
+  // Every frame on the page waits on this one answer, so it is raced against a
+  // deadline that assumes the endpoint is there. A deployment without it answers
+  // 404 in milliseconds, so the probe still saves the noise; a cold instance
+  // taking eight seconds over its first ffmpeg is a working endpoint being slow,
+  // and must not be read as a missing one.
+  const asked = fetch(frameApiSrc(head.title_id, t, FRAME_W))
+    .then(r => r.ok && (r.headers.get("content-type") || "").indexOf("image") === 0)
+    .catch(() => false);
+  const assume = new Promise(res => setTimeout(() => res(true), 8000));
+  frameApiProbe = Promise.race([asked, assume]);
+  return frameApiProbe;
+}
+
+// ebur128's last reading can land a fraction past the nominal window, and the
+// frame endpoint refuses any second outside the window it measured, correctly.
+// Pull such a time back inside by that fraction rather than asking for a frame
+// that cannot exist. The shift is at most 0.1 s, which is one loudness sample and
+// below the resolution of the figure the frame belongs to.
+function clampToWindow(titleId, t) {
+  const v = Number(t);
+  if (t == null || !Number.isFinite(v)) return null;
+  const row = allRows.find(r => r.title_id === titleId);
+  const win = row && row.scan_seconds != null ? Number(row.scan_seconds) : null;
+  if (!(win > 0)) return Math.max(0, v);
+  return Math.min(Math.max(0, v), win - 0.1);
+}
+
+function cellHtml(titleId, t0, opts) {
+  const o = opts || {};
+  const t = clampToWindow(titleId, t0);
+  if (t == null) {
+    return `<span class="cell${o.cls ? " " + o.cls : ""}"><span class="frame-na">no measured second to show</span></span>`;
+  }
+  return `<span class="cell${o.cls ? " " + o.cls : ""}" data-frame="1"
+   data-tid="${esc(titleId)}" data-t="${Number(t).toFixed(1)}" data-w="${o.w || FRAME_W}"${o.priority ? ` data-priority="1"` : ""}
+   ><img alt="${esc(o.alt || "")}"><span class="tc">${mmss(t)}</span></span>`;
+}
+
+// Nothing here is deferred on visibility. The index asks for exactly the frames
+// the reel already asked for, at the same width, so its twenty cells are twenty
+// cache reads and deferring them would buy nothing while leaving a backgrounded
+// tab blank, since an IntersectionObserver does not fire in one. What controls
+// cost is the queue below, not what happens to be on screen.
+const frameSeen = new WeakSet();
+
+function mountFrames(root) {
+  (root || document).querySelectorAll('.cell[data-frame="1"]').forEach(el => {
+    if (frameSeen.has(el)) return;
+    frameSeen.add(el);
+    loadFrame(el);
+  });
+}
+
+// Extraction is ffmpeg against a file on the other side of the internet, so a
+// cold frame costs seconds. Twenty of them fired at once would make every one of
+// them slow and land twenty ffmpeg processes on one instance. Four at a time
+// fills the reel left to right instead, which is also the order the argument is
+// read in, and the panel's own frame jumps the queue because it is the one the
+// reader is looking at.
+const FRAME_CONCURRENCY = 4;
+let frameActive = 0;
+const frameQueue = [];
+
+function loadFrame(el) {
+  if (el.dataset.priority === "1") frameQueue.unshift(el); else frameQueue.push(el);
+  pumpFrames();
+}
+
+function pumpFrames() {
+  while (frameActive < FRAME_CONCURRENCY && frameQueue.length) {
+    frameActive += 1;
+    startFrame(frameQueue.shift());
+  }
+}
+
+function releaseFrame() {
+  frameActive = Math.max(0, frameActive - 1);
+  pumpFrames();
+}
+
+function startFrame(el) {
+  const img = el.querySelector("img");
+  if (!img) { releaseFrame(); return; }
+  const tid  = el.dataset.tid;
+  const want = parseFloat(el.dataset.t);
+  const w    = parseInt(el.dataset.w, 10) || FRAME_W;
+
+  let stage = 0;
+  const advance = () => {
+    stage += 1;
+    if (stage === 1) { img.src = frameApiSrc(tid, want, w); return; }
+    if (stage === 2) {
+      nearestArchiveFrame(tid, want).then(f => {
+        if (!f) return frameMissing(el);
+        el.dataset.at = String(f.t);
+        el.dataset.approx = "1";
+        const tc = el.querySelector(".tc");
+        if (tc) { tc.textContent = "~" + mmss(f.t); tc.classList.add("approx"); }
+        el.title = `Nearest archive frame, ${mmss(f.t)}, ` +
+                   `${Math.abs(f.t - want).toFixed(1)} s from the measured second`;
+        img.src = f.url;
+      }, () => frameMissing(el));
+      return;
+    }
+    frameMissing(el);
+  };
+
+  img.addEventListener("error", advance);
+  img.addEventListener("load", () => {
+    img.classList.add("ready");
+    releaseFrame();
+    el.dispatchEvent(new CustomEvent("framestate", { bubbles: false }));
+  });
+
+  frameApiAvailable().then(ok => { if (!ok) stage = 1; advance(); });
+}
+
+function frameMissing(el) {
+  const img = el.querySelector("img");
+  if (img) img.remove();
+  const tc = el.querySelector(".tc");
+  if (tc) tc.remove();
+  el.dataset.missing = "1";
+  releaseFrame();
+  if (!el.querySelector(".frame-na")) {
+    const s = document.createElement("span");
+    s.className = "frame-na";
+    s.textContent = "no frame extracted";
+    el.appendChild(s);
+  }
+  el.dispatchEvent(new CustomEvent("framestate", { bubbles: false }));
 }
 
 // ── Ordering ───────────────────────────────────
@@ -701,14 +1193,68 @@ async function loadCatalog() {
     if (!allRows.length) {
       host.innerHTML = `<p class="empty">No titles measured yet. Ingest first.</p>`;
       document.getElementById("slip").innerHTML = `<p class="empty">No slip to show.</p>`;
+      document.getElementById("standfirst").className = "standfirst loading";
+      document.getElementById("standfirst").textContent =
+        "Nothing has been measured into this archive yet, so there is nothing to reject.";
       return;
     }
+    renderStandfirst();
     renderDateline();
+    renderReel();
     renderTitles();
     openWorstFailure();
   } catch(e) {
     host.innerHTML = `<p class="empty" style="color:var(--fail);font-style:normal">Error loading catalog: ${esc(e)}</p>`;
   }
+}
+
+// The finding, at display size, out of the catalog already on the page.
+function renderStandfirst() {
+  const el = document.getElementById("standfirst");
+  if (!el) return;
+  const n = allRows.length;
+  const rej = allRows.filter(r => r.verdict !== "PASS").length;
+  el.className = "standfirst";
+  el.innerHTML =
+    `<span class="n">${rej}</span> of the <span class="n all">${n}</span> titles measured ` +
+    `in this archive would be rejected by the delivery spec today.`;
+}
+
+// The reel: the whole archive on one strip, worst first, each title shown at the
+// second its own measurement condemns. Left to right the deltas fall, so the
+// picture and the ranking are the same object.
+function renderReel() {
+  const host = document.getElementById("reel");
+  const cap  = document.getElementById("reel-cap");
+  if (!host) return;
+  const target = specTarget();
+  host.innerHTML = orderedTitles(allRows, target).map(r => {
+    const tid  = r.title_id;
+    const name = r.title || tid;
+    const t    = frameTimeFor(r);
+    const isReject = r.verdict !== "PASS";
+    const v = r.integrated_lufs == null ? null : parseFloat(r.integrated_lufs);
+    const off = v == null || !Number.isFinite(v) ? null : v - target;
+    const label = off == null
+      ? `<span class="delta"><span class="unmeasured">not measured</span></span>`
+      : `<span class="delta">${off > 0 ? "+" : ""}${off.toFixed(1)}</span>`;
+    return `<button class="reel-cell${isReject ? " reject" : ""}" role="tab" aria-selected="false"
+   data-tid="${esc(tid)}" title="${esc(name)}">${
+     cellHtml(tid, t, { alt: t == null ? `${name}, no measured second` : `${name} at ${mmss(t)}` })
+   }${label}</button>`;
+  }).join("");
+  host.onclick = (e) => {
+    const b = e.target.closest(".reel-cell");
+    if (b) selectTitle(b.dataset.tid);
+  };
+  if (cap) {
+    cap.innerHTML =
+      `Every measured title, worst first, each one shown at the second its quietest sustained ` +
+      `passage lands. The figure under each frame is that title's distance from the ` +
+      `<span class="mono">${target.toFixed(0)} LUFS</span> target, in LU. A timecode written ` +
+      `<span class="mono">~</span> is the nearest frame the archive itself holds, not the exact second.`;
+  }
+  mountFrames(host, true);
 }
 
 function renderDateline() {
@@ -742,11 +1288,15 @@ function rowsCell(row) {
   return `<span>${v} rows</span>`;
 }
 
+// The index, painted once. Selection is a class change from here on, so opening a
+// slip never rebuilds twenty frames and never flashes the contact sheet.
 function renderTitles() {
   const ordered = orderedTitles(allRows, specTarget());
   const host = document.getElementById("titles");
   host.innerHTML = ordered.map(r => {
     const tid = r.title_id;
+    const name = r.title || tid;
+    const t = frameTimeFor(r);
     const isReject = r.verdict !== "PASS";
     const sel = tid === selectedId ? " selected" : "";
     const fails = isReject
@@ -754,14 +1304,35 @@ function renderTitles() {
       : `<span class="m-fails">clear</span>`;
     return `
 <button class="title-line${isReject ? " reject" : ""}${sel}" data-tid="${esc(tid)}">
-  <span class="title-name">${esc(r.title || tid)}</span>
-  <span class="title-meta">${lufsCell(r)} ${fails} ${rowsCell(r)}</span>
+  ${cellHtml(tid, t, { alt: t == null ? `${name}, no measured second` : `${name} at ${mmss(t)}` })}
+  <span>
+    <span class="title-name">${esc(name)}</span>
+    <span class="title-meta">${lufsCell(r)} ${fails} ${rowsCell(r)}</span>
+  </span>
 </button>`;
   }).join("");
   host.onclick = (e) => {
     const b = e.target.closest(".title-line");
     if (b) selectTitle(b.dataset.tid);
   };
+  mountFrames(host);
+}
+
+// Which title the index and the reel are showing as open.
+function updateSelection() {
+  document.querySelectorAll(".title-line").forEach(el => {
+    el.classList.toggle("selected", el.dataset.tid === selectedId);
+  });
+  const strip = document.getElementById("reel");
+  document.querySelectorAll(".reel-cell").forEach(el => {
+    const on = el.dataset.tid === selectedId;
+    el.classList.toggle("selected", on);
+    el.setAttribute("aria-selected", on ? "true" : "false");
+    // Only when the strip is actually scrolled, which is the narrow layout.
+    if (on && strip && strip.scrollWidth > strip.clientWidth + 4) {
+      el.scrollIntoView({ inline: "center", block: "nearest" });
+    }
+  });
 }
 
 // Open the worst reject on load (or the head title if nothing is rejected),
@@ -774,7 +1345,7 @@ function openWorstFailure() {
 
 async function selectTitle(titleId) {
   selectedId = titleId;
-  renderTitles();
+  updateSelection();
   document.getElementById("slip").innerHTML = `<p class="empty">Reading slip...</p>`;
   await loadDetail(titleId);
 }
@@ -852,19 +1423,6 @@ async function loadDetail(titleId) {
 </div>`;
     }).join("");
 
-    // LISTEN block, straight off the stored window. No timestamp is invented.
-    const w = d.worst_window;
-    let listenHtml;
-    if (w && w.quietest_at_seconds != null) {
-      listenHtml = `
-<div class="listen">
-  <div class="time">${mmss(w.quietest_at_seconds)}</div>
-  <div class="sub">quietest ${parseFloat(w.quietest_short_term_lufs).toFixed(1)} LUFS, loudest ${parseFloat(w.loudest_short_term_lufs).toFixed(1)} LUFS short-term</div>
-</div>`;
-    } else {
-      listenHtml = `<p class="na-line">No loudness window stored for this title, so there is no timestamp to cue.</p>`;
-    }
-
     // PLAN block from triage already in hand, or a named next action.
     const plan = planFor(titleId);
     const planHtml = plan
@@ -885,17 +1443,14 @@ async function loadDetail(titleId) {
   <span class="spec">spec ${target.toFixed(0)}${tol != null ? ` &plusmn;${tol.toFixed(1)}` : ""} LUFS</span>
 </div>
 
-${traceBlock(d, target, tol, lufsVal)}
+${traceBlock(d, target, tol, lufsVal, row)}
+
+${defectBlock(d, row)}
 
 <hr class="rule">
 <div class="checks">${checksHtml || `<div class="plan-none">No failed checks on this title.</div>`}</div>
 
 ${eventsBlock(d)}
-
-<div class="field listen">
-  <span class="lbl">Listen</span>
-  ${listenHtml}
-</div>
 
 ${verifyBlock(d, lufsVal)}
 
@@ -911,11 +1466,70 @@ ${verifyBlock(d, lufsVal)}
 <pre class="slip-fallback" id="slipfallback-${safe}"></pre>
 <div class="triage-out" id="triage-output"></div>`;
 
+    wireDefectNote();
+    mountFrames(slip, true);
     paintTrace();
     paintWorkOrder();
   } catch(e) {
     slip.innerHTML = `<p class="empty" style="color:var(--fail);font-style:normal">Error: ${esc(e)}</p>`;
   }
+}
+
+// ── The second it fails ────────────────────────────────────────────────────
+// The frame at the quietest sustained passage, at the size the argument
+// deserves, with the two short-term figures that condemn it beside it. The
+// timestamp is the one stored in the rollup; none is invented, and a title with
+// no stored window says so instead of showing a frame from nowhere.
+function defectBlock(d, row) {
+  const w = d.worst_window;
+  const name = (row && row.title) || d.title_id;
+  if (!w || w.quietest_at_seconds == null) {
+    return `
+<div class="field">
+  <span class="lbl">The second it fails</span>
+  <p class="na-line">No loudness window is stored for this title, so there is no second to cue and no frame to show for one.</p>
+</div>`;
+  }
+  const t = Number(w.quietest_at_seconds);
+  const q = parseFloat(w.quietest_short_term_lufs);
+  const l = parseFloat(w.loudest_short_term_lufs);
+  return `
+<div class="field">
+  <span class="lbl">The second it fails</span>
+  <div class="defect">
+    ${cellHtml(d.title_id, t, { w: FRAME_W_LARGE, priority: true, alt: `${name} at ${mmss(t)}, its quietest sustained passage` })}
+    <div class="defect-read" id="defect-read">
+      <div class="time">${mmss(t)}</div>
+      <div class="st">${Number.isFinite(q) ? `${q.toFixed(1)} LUFS short-term` : `<span class="na">short-term not measured</span>`}<span class="dim">${Number.isFinite(l) ? `, against ${l.toFixed(1)} at its loudest` : ""}</span></div>
+      <p>The quietest sustained passage in the scanned window, at <span class="mono">t = ${t.toFixed(1)} s</span>. The trace above marks the same second, and the strip under it holds the same frame.</p>
+    </div>
+  </div>
+</div>`;
+}
+
+// Where the frame in that panel actually came from, said in words once the image
+// has resolved. Attached before the frame is mounted, so no state is missed.
+function wireDefectNote() {
+  const cell = document.querySelector(".defect .cell");
+  const read = document.getElementById("defect-read");
+  if (!cell || !read) return;
+  cell.addEventListener("framestate", () => {
+    const old = read.querySelector(".approx");
+    if (old) old.remove();
+    if (cell.dataset.missing) {
+      read.insertAdjacentHTML("beforeend",
+        `<p class="approx">No frame could be cut from the source at this second, so none is shown. The measurement stands without it.</p>`);
+      return;
+    }
+    if (cell.dataset.approx) {
+      const at = Number(cell.dataset.at), want = parseFloat(cell.dataset.t);
+      read.insertAdjacentHTML("beforeend",
+        `<p class="approx">The exact frame could not be cut from the source, so this is the nearest frame the archive itself holds, at ${mmss(at)}, ${Math.abs(at - want).toFixed(1)} seconds from the second that failed.</p>`);
+      return;
+    }
+    read.insertAdjacentHTML("beforeend",
+      `<p class="approx exact">Cut with ffmpeg from the same file the loudness above was measured from, at the second the measurement names.</p>`);
+  });
 }
 
 // ── Red slip ───────────────────────────────────
@@ -1249,12 +1863,14 @@ function listenMarkerX(data, worstWindow, W) {
 // width from the same rows instead of refetching.
 let tracePaint = null;
 
-function traceBlock(d, target, tol, lufsVal) {
+function traceBlock(d, target, tol, lufsVal, row) {
   // The previous title's host is about to be discarded with the slip.
   if (traceObserver) traceObserver.disconnect();
   tracePaintedW = 0;
+  stripPainted = null;
   const chart = Array.isArray(d.loudness_chart) ? d.loudness_chart : [];
   if (!chart.length) {
+    tracePaint = null;
     return `
 <div class="trace-wrap">
   <p class="na-line">No loudness samples are stored for this title, so there is no trace to draw.</p>
@@ -1264,11 +1880,14 @@ function traceBlock(d, target, tol, lufsVal) {
     chart,
     worstWindow: d.worst_window || null,
     events: Array.isArray(d.events) ? d.events : [],
+    titleId: d.title_id,
+    titleName: (row && row.title) || d.title_id,
     target, tol,
   };
   return `
 <div class="trace-wrap" id="trace-wrap">
   <div id="trace-host"></div>
+  <div id="strip-host"></div>
   <div class="trace-readout" id="trace-readout"><span class="dim">Hover the trace to read a sample.</span></div>
   <p class="chart-cap">${traceCaption(d, target, tol, lufsVal)}</p>
 </div>`;
@@ -1312,14 +1931,68 @@ function paintTrace() {
   tracePaintedW = W;
   host.innerHTML = traceSvg(tracePaint, W);
   wireTraceHover(W);
+  paintStrip(W);
   if (traceObserver) traceObserver.observe(host);
+}
+
+// The trace gutters, in one place, so the strip below cannot drift off the axis
+// the frames are supposed to be standing on.
+function traceGutters(W) {
+  const narrow = W < 480;
+  return { narrow, padL: narrow ? 38 : 52, padR: 14 };
+}
+
+// The scanned window as film, on the trace's own axis and inside its own
+// gutters, so each frame sits under the second it was taken at. The cell holding
+// the quietest passage is bracketed, and a red line runs through the strip at the
+// exact second the trace marks above.
+let stripPainted = null;
+function paintStrip(W) {
+  const host = document.getElementById("strip-host");
+  if (!host || !tracePaint) return;
+  const { padL, padR } = traceGutters(W);
+  const plotW = W - padL - padR;
+  const n = plotW < 420 ? 4 : (plotW < 640 ? 6 : 8);
+  const key = `${tracePaint.titleId}|${n}`;
+  if (stripPainted === key) {
+    const strip = host.firstElementChild;
+    if (strip) { strip.style.marginLeft = padL + "px"; strip.style.marginRight = padR + "px"; }
+    return;
+  }
+  stripPainted = key;
+
+  const chart = tracePaint.chart;
+  const t0 = Number(chart[0].t), t1 = Number(chart[chart.length - 1].t);
+  const span = t1 - t0;
+  if (!(span > 0)) { host.innerHTML = ""; return; }
+
+  const ww = tracePaint.worstWindow;
+  const defect = ww && ww.quietest_at_seconds != null ? Number(ww.quietest_at_seconds) : null;
+  const step = span / n;
+  const cells = [];
+  for (let k = 0; k < n; k++) {
+    const a = t0 + k * step;
+    const hit = defect != null && defect >= a && defect < a + step;
+    const at = hit ? defect : a + step / 2;
+    cells.push(cellHtml(tracePaint.titleId, at, {
+      cls: hit ? "hit" : "",
+      alt: `${tracePaint.titleName} at ${mmss(at)}`,
+    }));
+  }
+  const mark = defect == null ? "" :
+    `<span class="strip-mark" style="left:${(((defect - t0) / span) * 100).toFixed(3)}%"></span>`;
+  host.innerHTML =
+    `<div class="strip" style="margin-left:${padL}px;margin-right:${padR}px">${cells.join("")}${mark}</div>`;
+  mountFrames(host, true);
 }
 
 function traceSvg(p, W) {
   // A phone gets a shorter plot and a narrower gutter, so the trace keeps its
-  // shape instead of being crushed by axis furniture.
-  const narrow = W < 480;
-  const H = narrow ? 152 : 196, padL = narrow ? 38 : 52, padR = 14, padT = 14, padB = 24;
+  // shape instead of being crushed by axis furniture. On the desktop column the
+  // plot is tall enough to read a 14 LU shortfall as a shape rather than a
+  // wobble, because that shortfall is the whole finding.
+  const { narrow, padL, padR } = traceGutters(W);
+  const H = narrow ? 186 : 300, padT = 16, padB = 26;
   const chart = p.chart, target = p.target, tol = p.tol;
   const plotW = W - padL - padR, plotH = H - padT - padB;
 
@@ -1421,7 +2094,8 @@ function wireTraceHover(W) {
   if (!hit || !out || !tracePaint) return;
   const chart = tracePaint.chart;
   const t0 = Number(chart[0].t), t1 = Number(chart[chart.length - 1].t);
-  const padL = W < 480 ? 38 : 52, padR = 14, plotW = W - padL - padR;
+  const { padL, padR } = traceGutters(W);
+  const plotW = W - padL - padR;
 
   const move = (ev) => {
     const box = hit.getBoundingClientRect();

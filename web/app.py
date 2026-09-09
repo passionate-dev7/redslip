@@ -28,7 +28,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 
 from qc import mcp_log as mcp_log_rules
 from qc import store
@@ -126,15 +126,90 @@ async def catalog():
         ).result_rows
         failed = {r[0]: (list(r[1]), list(r[2])) for r in checks}
 
+        # source_url on the row itself, so a contact sheet does not have to fetch
+        # /api/title for all 20 titles just to learn where each film came from.
+        try:
+            srcs = store.sources(ch)
+        except Exception:
+            srcs = {}
+
         for row in rows:
             names, costs = failed.get(row["title_id"], ([], []))
             row["failed_checks"] = names
             row["rescue_costs"] = costs
+            src = srcs.get(row["title_id"]) or {}
+            row["source_url"] = src.get("source_url")
+            row["scan_seconds"] = src.get("scan_seconds")
         return JSONResponse(jsonable_encoder(rows))
     except HTTPException:
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+FRAME_CACHE = Path("/tmp/vault-frames")
+BAKED_FRAMES = Path(__file__).parent / "frames"
+
+
+@app.get("/api/frame/{title_id:path}")
+def frame(title_id: str, t: float = 0.0, w: int = 320):
+    """One real frame of the measured film, at a measured second.
+
+    The ledger condemns films, so the ledger should show them. The frame is pulled
+    from the same `source_url` the measurement used, which is why it is evidence
+    rather than decoration: it provably comes from the file the numbers describe.
+
+    Three layers, cheapest first. A frame baked into the image at build time is
+    served straight from disk. Otherwise a previously extracted frame is served
+    from the instance cache. Only a genuinely new (title, t, w) pays ffmpeg, which
+    fast-seeks the remote file and costs 1 to 3 seconds, so baking matters.
+    """
+    import subprocess
+
+    w = max(96, min(640, int(w)))
+
+    try:
+        src = store.sources(_ch()).get(title_id)
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"sources unavailable: {str(exc)[:160]}")
+    if not src or not src.get("source_url"):
+        raise HTTPException(status_code=404, detail=f"no recorded source for {title_id}")
+
+    scan = float(src.get("scan_seconds") or 0) or None
+    if t < 0:
+        t = 0.0
+    if scan and t > scan:
+        # Never invent a frame from outside the window that was actually measured.
+        raise HTTPException(
+            status_code=404,
+            detail=f"t={t:.1f}s is outside the {scan:.0f}s window measured for this title",
+        )
+
+    key = f"{round(t, 1)}_{w}.jpg"
+    baked = BAKED_FRAMES / title_id / key
+    if baked.exists():
+        return FileResponse(baked, media_type="image/jpeg",
+                            headers={"Cache-Control": "public, max-age=31536000, immutable"})
+
+    out = FRAME_CACHE / title_id / key
+    if not out.exists():
+        out.parent.mkdir(parents=True, exist_ok=True)
+        cmd = [
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-nostdin",
+            "-ss", f"{t:.2f}", "-i", src["source_url"],
+            "-frames:v", "1", "-q:v", "2", "-vf", f"scale={w}:-2", "-y", str(out),
+        ]
+        try:
+            subprocess.run(cmd, check=True, timeout=45,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        except Exception as exc:
+            raise HTTPException(status_code=404,
+                                detail=f"frame extraction failed at {t:.1f}s: {str(exc)[:160]}")
+        if not out.exists() or out.stat().st_size == 0:
+            raise HTTPException(status_code=404, detail=f"no frame decoded at {t:.1f}s")
+
+    return FileResponse(out, media_type="image/jpeg",
+                        headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
 
 @app.get("/api/title/{title_id:path}")
