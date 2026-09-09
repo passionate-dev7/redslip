@@ -145,9 +145,24 @@ source scripts/cloudenv.sh
 .venv/bin/python scripts/capture_query_cost.py   # writes docs/evidence/query-cost.txt
 ```
 
-Ranking costs a number of rows proportional to how many titles exist, not to how much
-audio was measured. The percentile query is the one that pays for the stream, and it is
-the reason the percentiles are percentiles rather than a figure typed into a cell.
+The same two shapes are priced live at [`/api/query-cost`](https://vault-387894104564.us-central1.run.app/api/query-cost),
+and the panel at the foot of the page is that endpoint, so the figures are this catalog
+as it stands rather than a capture from a day that has passed.
+
+Read the rows, not the milliseconds. At 24,017 rows the full scan is the *faster* of the
+two: a stream that small is nothing to scan, while the ranking pays for a view stack over
+three tables. That row is in the table above rather than dropped from it, because a cost
+panel that hides its worst column is an advert. The claim is not that ranking is quick
+today, it is that ranking costs a number of rows proportional to how many titles exist
+and not to how much audio was measured, so the two columns diverge as the archive grows
+in running time. The percentile query is the one that pays for the stream, and it is the
+reason the percentiles are percentiles rather than a figure typed into a cell.
+
+Every statement the crew composes is priced the same way, per statement, from
+`system.query_log`. That is ClickHouse's own accounting of the agent's own SQL, looked up
+by the text the agent wrote, and it is printed under each statement in the run's evidence
+rail. A statement whose accounting has not been flushed yet says so; it is never drawn as
+zero rows read.
 
 `EXPLAIN indexes = 1` on the ranking query names `vault.findings` and
 `vault.title_loudness` and does not mention `vault.loudness_samples`, and there is a test
