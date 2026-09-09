@@ -1,0 +1,41 @@
+The MCP server refuses to write, and ClickHouse is the one refusing.
+
+Captured through the official mcp-clickhouse MCP server over stdio, the
+same binary agent/crew.py starts: /Users/kamal/.local/bin/mcp-clickhouse
+Server environment: CLICKHOUSE_ALLOW_WRITE_ACCESS=false, which makes
+mcp-clickhouse send readonly=1 with every statement.
+Captured at 2026-09-09T11:02:45.839660+00:00.
+
+Reproduce:
+  source scripts/cloudenv.sh
+  .venv/bin/python scripts/capture_mcp_evidence.py
+
+Both probes deliberately bypass the crew's own read-only gate in
+agent/crew.py, because our callback refusing a statement proves nothing
+about the server. Both are also chosen to be harmless if the guarantee
+failed: a Null-engine table stores nothing, and the INSERT selects no rows.
+
+vault.events before: 29 rows.
+
+run_query, DDL:
+  CREATE TABLE IF NOT EXISTS vault.readonly_probe (probe UInt8) ENGINE = Null
+
+Query execution failed: Received ClickHouse exception, code: 164, server response: Code: 164. DB::Exception: default: Cannot execute query in readonly mode. (READONLY) (version 26.2.1.641 (official build)) (for url https://ctmiqkvdfg.us-central1.gcp.clickhouse.cloud:8443)
+
+run_query, DML:
+  INSERT INTO vault.events SELECT * FROM vault.events WHERE 1 = 0
+
+Query execution failed: Received ClickHouse exception, code: 164, server response: Code: 164. DB::Exception: default: Cannot execute query in readonly mode. (READONLY) (version 26.2.1.641 (official build)) (for url https://ctmiqkvdfg.us-central1.gcp.clickhouse.cloud:8443)
+
+Code 164 is ClickHouse's READONLY. Both statements were rejected by the
+database rather than filtered by the client, and neither left a mark.
+
+run_query:
+  SELECT count() FROM system.tables WHERE database = 'vault' AND name = 'readonly_probe'
+
+  0
+
+run_query:
+  SELECT count() FROM vault.events
+
+  29

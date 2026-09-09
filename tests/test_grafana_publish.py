@@ -45,6 +45,20 @@ def test_live_dashboard_is_redslip_fleet():
     with urllib.request.urlopen(req, timeout=20) as resp:
         payload = json.loads(resp.read())
     assert payload["dashboard"]["title"] == "Redslip fleet"
-    assert payload["dashboard"]["panels"], "dashboard has no panels"
-    md = payload["dashboard"]["panels"][0]["options"]["content"]
-    assert "Fugitive Valley" in md or "LUFS" in md
+    panels = payload["dashboard"]["panels"]
+    assert panels, "dashboard has no panels"
+
+    # The board agent composes the panel itself, so the panel type is the model's
+    # choice: a markdown table carries the queue in `options.content`, a table panel
+    # carries it in `targets[].rows`. Asserting one shape made this test red whenever
+    # the crew picked the other, which is a fact about the panel type and not about
+    # whether the work order reached Grafana. What has to be true is that the published
+    # board carries the queue.
+    published = json.dumps(panels)
+    assert "Fugitive Valley" in published, (
+        "the published board does not name the worst title in the queue:\n"
+        + published[:2000]
+    )
+    assert "lufs_delta" in published or "LUFS" in published, (
+        "the published board carries no loudness figure:\n" + published[:2000]
+    )

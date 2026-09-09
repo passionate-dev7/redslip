@@ -32,16 +32,15 @@ RANKING_QUERY = (
 
 
 @pytest.fixture(scope="module")
-def ch():
-    pytest.importorskip("clickhouse_connect")
-    from qc import store
+def ch(vault_clickhouse):
+    """The shared gate in conftest.py: a client that can read vault, or a stated skip.
 
-    try:
-        client = store.client()
-        client.query("SELECT 1")
-    except Exception as exc:
-        pytest.skip(f"no ClickHouse: {exc}")
-    return client
+    Reaching a ClickHouse that answers `SELECT 1` is not enough here. Every assertion
+    below reads the vault schema, so a local server with no ingest has to skip rather
+    than fail on `Database vault does not exist`, which tells a reader nothing about
+    what is missing.
+    """
+    return vault_clickhouse
 
 
 def _plan(ch, sql: str) -> str:

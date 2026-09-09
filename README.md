@@ -111,7 +111,16 @@ The interesting part is not the row count, it is which rows get read.
 rebuild the fleet. `vault.fleet` reads that rollup, one row per title, joined to the small
 findings table. `EXPLAIN indexes = 1` on the ranking query names `vault.findings` and
 `vault.title_loudness` and does not mention `vault.loudness_samples`, and there is a test
-that asserts exactly that.
+that asserts exactly that. The plan itself is committed at
+[`docs/evidence/explain-ranking-plan.txt`](docs/evidence/explain-ranking-plan.txt),
+captured through the MCP server against ClickHouse Cloud, with the control query that
+proves `EXPLAIN` does name the samples table when a query genuinely reads it. The
+server's refusal to write is committed the same way at
+[`docs/evidence/readonly-refusal.txt`](docs/evidence/readonly-refusal.txt): a DDL and a
+DML statement, both answered `Code 164 READONLY` by ClickHouse itself, with the archive
+unchanged either side. Both files carry the command that produced them, so a judge who
+cannot reach the Cloud database can still read what came back, and anyone who can reach
+it can re-run them with `.venv/bin/python scripts/capture_mcp_evidence.py`.
 
 **The sample stream exists for one job.** Opening a single title runs an `ASOF LEFT JOIN`
 from `vault.events` to `vault.loudness_samples`, stamping each defect with the short-term
@@ -309,7 +318,7 @@ to disk.
 | `GET /api/triage/stream` | one crew run as server-sent events, one per composed statement |
 | `POST /api/triage` | the same run, one JSON reply |
 | `GET /api/slips` | the last work order the crew wrote into ClickHouse |
-| `GET /api/mcp-log` | every statement past crews composed |
+| `GET /api/mcp-log` | every statement past crews composed against the catalog now in ClickHouse, with the generation cutoff stated in the payload |
 | `GET /api/health` | readiness |
 
 ### Tests

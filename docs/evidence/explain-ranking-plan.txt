@@ -1,0 +1,96 @@
+Ranking the fleet does not read the 100ms sample stream.
+
+Captured through the official mcp-clickhouse MCP server over stdio, the
+same binary agent/crew.py starts: /Users/kamal/.local/bin/mcp-clickhouse
+Server environment: CLICKHOUSE_ALLOW_WRITE_ACCESS=false, readonly=1.
+Captured at 2026-09-09T11:02:44.365341+00:00.
+
+Reproduce:
+  source scripts/cloudenv.sh
+  .venv/bin/python scripts/capture_mcp_evidence.py
+
+run_query, statement 1 of 2:
+  EXPLAIN indexes = 1 SELECT title_id, title, verdict, integrated_lufs, lufs_delta, lane FROM vault.fleet ORDER BY lufs_delta DESC LIMIT 12
+
+Expression ((Project names + (Before ORDER BY + (Projection + (Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + Projection))))))))) [lifted up part]))
+  Limit (preliminary LIMIT)
+    Sorting (Sorting for ORDER BY)
+      Expression ((Before ORDER BY + (Projection + (Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + Projection))))))))))
+        Expression (Post Join Actions)
+          Join (JOIN FillRightFirst)
+            Expression (Left Pre Join Actions)
+              Expression (Post Join Actions)
+                Join (JOIN FillRightFirst)
+                  Expression (Left Pre Join Actions)
+                    Expression ((Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + (Before ORDER BY + Projection)))))))))
+                      Aggregating
+                        Expression ((Before GROUP BY + Change column names to column identifiers))
+                          CreatingSets (Create sets before main query execution)
+                            Expression ((Project names + Projection))
+                              Expression ((WHERE + Change column names to column identifiers))
+                                ReadFromMergeTree (vault.findings)
+                                Indexes:
+                                  PrimaryKey
+                                    Keys:
+                                      title_id
+                                      scanned_at
+                                    Condition: ((title_id, scanned_at) in 20-element set)
+                                    Parts: 1/1
+                                    Granules: 1/1
+                                    Search Algorithm: generic exclusion search
+                                  Ranges: 1
+                  Expression (Right Pre Join Actions)
+                    Expression ((Change column names to column identifiers + (Convert VIEW subquery result to VIEW table structure + (Materialize constants after VIEW subquery + (Project names + (Projection + (Change column names to column identifiers + (Project names + Projection))))))))
+                      Aggregating
+                        Expression ((Before GROUP BY + Change column names to column identifiers))
+                          ReadFromMergeTree (vault.title_loudness)
+                          Indexes:
+                            PrimaryKey
+                              Condition: true
+                              Parts: 1/1
+                              Granules: 1/1
+                            Ranges: 1
+            Expression (Right Pre Join Actions)
+              Expression ((Change column names to column identifiers + (Project names + Projection)))
+                Aggregating
+                  Expression (Before GROUP BY)
+                    Expression ((WHERE + Change column names to column identifiers))
+                      ReadFromMergeTree (vault.findings)
+                      Indexes:
+                        PrimaryKey
+                          Keys:
+                            check_name
+                          Condition: (check_name in ['integrated_loudness_ebu_r128', 'integrated_loudness_ebu_r128'])
+                          Parts: 1/1
+                          Granules: 1/1
+                          Search Algorithm: generic exclusion search
+                        Ranges: 1
+
+vault.loudness_samples does not appear in that plan. vault.title_loudness,
+the one-row-per-title rollup, and vault.findings, the verdict table, do.
+
+run_query, statement 2 of 2, the control. Without it the first plan could
+pass because EXPLAIN had stopped naming tables at all:
+  EXPLAIN indexes = 1 SELECT title_id, min(short_term) FROM vault.loudness_samples GROUP BY title_id
+
+Expression ((Project names + Projection))
+  Aggregating
+    Expression ((Before GROUP BY + Change column names to column identifiers))
+      ReadFromMergeTree (vault.loudness_samples)
+      Indexes:
+        MinMax
+          Condition: true
+          Parts: 8/8
+          Granules: 8/8
+        Partition
+          Condition: true
+          Parts: 8/8
+          Granules: 8/8
+        PrimaryKey
+          Condition: true
+          Parts: 8/8
+          Granules: 8/8
+        Ranges: 8
+
+That plan does name vault.loudness_samples, so the absence above is a fact
+about the ranking query rather than about EXPLAIN.

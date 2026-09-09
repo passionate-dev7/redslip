@@ -13,7 +13,7 @@ composes are the evidence that it is an agent rather than a stored procedure.
   GET  /api/triage/stream   run the crew, server-sent events, one per query
   POST /api/triage          run the crew, single JSON reply
   GET  /api/slips           the last work order the crew wrote into ClickHouse
-  GET  /api/mcp-log         every statement past crews composed
+  GET  /api/mcp-log         every statement past crews composed, current catalog only
 """
 
 from __future__ import annotations
@@ -30,6 +30,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 
+from qc import mcp_log as mcp_log_rules
 from qc import store
 
 log = logging.getLogger(__name__)
@@ -422,17 +423,37 @@ async def slips():
 
 @app.get("/api/mcp-log")
 async def mcp_log(limit: int = 60):
+    """Every statement past crews composed, for the catalog now in ClickHouse.
+
+    Scoped to the current schema generation. The catalog was re-ingested, and calls
+    composed before that answered correctly about a title set this service no longer
+    serves. Those calls are not rewritten, because editing what a transcript says a
+    server returned is falsifying it: they are kept verbatim in
+    logs/mcp_tool_calls.pre-fleet.jsonl and are not offered here as evidence about the
+    shipped catalog. The cutoff and the withheld count are in the payload, so a reader
+    is told what is missing rather than left to notice.
+    """
     if not MCP_LOG.exists():
         return {"entries": [], "total_logged": 0,
                 "note": "No crew run has been recorded on this instance yet."}
-    lines = MCP_LOG.read_text().strip().splitlines()
-    entries = []
-    for line in lines[-limit:]:
-        try:
-            entries.append(json.loads(line))
-        except ValueError:
-            pass
-    return {"entries": entries, "total_logged": len(lines)}
+    entries = mcp_log_rules.served(MCP_LOG)
+    withheld = len(mcp_log_rules.read(mcp_log_rules.PRE_FLEET_LOG_PATH))
+    return {
+        "entries": entries[-limit:],
+        "total_logged": len(entries),
+        "generation_start": mcp_log_rules.GENERATION_START,
+        "generation_reason": mcp_log_rules.GENERATION_REASON,
+        "withheld_earlier_entries": withheld,
+        "withheld_file": str(
+            mcp_log_rules.PRE_FLEET_LOG_PATH.relative_to(mcp_log_rules.ROOT)
+        ),
+        "note": (
+            f"{len(entries)} statements, every one composed at or after "
+            f"{mcp_log_rules.GENERATION_START} against the catalog this service serves "
+            f"now. {withheld} earlier statements are held back. "
+            + mcp_log_rules.GENERATION_REASON
+        ),
+    }
 
 
 @app.get("/api/health")
