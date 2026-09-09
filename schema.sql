@@ -23,9 +23,16 @@ CREATE DATABASE IF NOT EXISTS vault;
 -- monotonic scan clock. LowCardinality on title_id because a catalog has
 -- thousands of distinct titles against tens of millions of rows.
 --
--- Partitioning by a hash of title_id rather than by month means one title can be
--- dropped or re-scanned with a partition DROP instead of a mutation, which is
--- what a re-delivery actually looks like.
+-- Partitioned by a hash of title_id into 8 buckets rather than by month, because
+-- a scan clock is an offset into a title and carries no calendar to partition on.
+-- What this buys is locality: every sample for a title lands in one partition, so
+-- the per-title reads below touch one bucket instead of all of them.
+--
+-- What it does NOT buy, and an earlier comment here claimed it did: dropping a
+-- single title. A partition is a bucket of roughly an eighth of the catalog, so
+-- DROP PARTITION would take every title that hashes alongside it. Re-delivery is
+-- handled the same way vault.events handles it, by appending a new scan and
+-- reading the newest one, which is why nothing in this project issues a mutation.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS vault.loudness_samples
 (

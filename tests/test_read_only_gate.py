@@ -54,6 +54,14 @@ WRITES = [
     "KILL QUERY WHERE 1",
     "SELECT 1 -- keep going\n; DROP TABLE vault.findings",
     "SELECT 1 /* nothing to see */ ; TRUNCATE TABLE vault.events",
+    # A statement that starts with SELECT and still writes. No write verb appears in
+    # any of these, so a keyword list alone waves them through while the archive lands
+    # on the server's filesystem. The gate claims nothing but a read gets past it, and
+    # a claim that dies to one clause is worse than a narrower true one.
+    "SELECT 1 INTO OUTFILE 'x.tsv'",
+    "SELECT * FROM vault.findings INTO OUTFILE '/tmp/leak.csv' FORMAT CSV",
+    "SELECT title_id FROM vault.fleet into outfile 'lower.csv'",
+    "SELECT 1 INTO DUMPFILE 'blob'",
     "",
     "   ",
 ]
@@ -69,6 +77,11 @@ READS = [
     "SELECT deleted FROM vault.findings",
     "/* drop everything */ SELECT 1",
     "SELECT 'insert' AS word",
+    # The sink is a clause, not a word. A title or a literal that happens to contain
+    # the phrase is data, and refusing it would make the gate useless in the other
+    # direction, which is the failure the READS list exists to catch.
+    "SELECT 'into outfile' AS phrase",
+    "SELECT intoOutfileCount FROM vault.findings",
 ]
 
 

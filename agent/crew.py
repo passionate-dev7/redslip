@@ -243,9 +243,17 @@ _WRITE_STATEMENT = re.compile(
     re.IGNORECASE,
 )
 
+# A statement can start with SELECT and still write. `SELECT ... INTO OUTFILE` is the
+# one that matters: it carries no write verb, so the list above waves it through, and
+# it puts the archive on the server's filesystem. `INTO DUMPFILE` is the same clause
+# for a single blob. Neither is a query the crew has any reason to compose, and the
+# claim this gate makes is that nothing but a read gets past it, so a SELECT with a
+# write sink has to be refused by name rather than by being unusual.
+_WRITE_SINK = re.compile(r"(?<![a-z_])into\s+(outfile|dumpfile)(?![a-z_])", re.IGNORECASE)
+
 
 def is_read_only(sql: str) -> bool:
-    """True when this statement cannot change the archive.
+    """True when this statement cannot change the archive or write a file.
 
     Comments are stripped first. `-- drop table` is harmless, but so is
     `SELECT 1 --\\n; DROP TABLE x` to a naive prefix check, and only one of those
@@ -254,9 +262,13 @@ def is_read_only(sql: str) -> bool:
     stripped = re.sub(r"--[^\n]*", " ", sql or "")
     stripped = re.sub(r"/\*.*?\*/", " ", stripped, flags=re.DOTALL)
     # String literals go too. Titles legitimately contain words like "insert", and a
-    # WHERE title_id IN (...) list must not be read as a statement.
+    # WHERE title_id IN (...) list must not be read as a statement. The OUTFILE path
+    # is a literal and disappears here, which is why the sink is matched on the
+    # clause rather than on what it is pointed at.
     stripped = re.sub(r"'(?:''|\\.|[^'])*'", " ", stripped)
     if not stripped.strip():
+        return False
+    if _WRITE_SINK.search(stripped):
         return False
     return _WRITE_STATEMENT.search(stripped) is None
 
