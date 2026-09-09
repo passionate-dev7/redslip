@@ -1,18 +1,39 @@
-# Redslip
+# Redslip story polish notes
 
-Devpost submission copy. Field names below match the form.
+Scored 2026-09-10 against judge writeup shape. No em dashes.
 
-**Project name:** Redslip
+## Scores (1-10)
 
----
+| Axis | Score | Note |
+|---|---|---|
+| Uniqueness | 8 | Catalog ranking + BATCH/HUMAN/READY lanes; opposite verb from Checkprint. Five-slots table makes that unmistakable. |
+| Judge-clarity | 9 | Incident/user/incumbent/number/limit table at the top. Elevator already carries 11/6/3 and 24,017. |
+| Partner-load-bearing proof | 8 | mcp-clickhouse via ADK McpToolset, EXPLAIN proof ranking never scans samples, readonly refusal evidence. |
+| Demo-hook | 8 | Ledger renders immediately; Fugitive Valley -37.2 LUFS one-command reproduce. |
 
-## Elevator pitch
+**Composite ~8.25.**
 
-> Redslip is Monday triage for a film archive: ranks failing masters, lanes each BATCH, HUMAN or READY (11/6/3), ranking on 320 rollup rows while forensics stay on 24,017 ClickHouse samples.
+## Top 5 concrete edits (weak lines quoted)
 
-*188 characters, counted, against the 200 limit.*
+1. **NAMED USER WAS A ROLE NOT A PERSON (applied):** Was: "| Named user | Archive digitization lead / catalog delivery lead..." Now: "Jordan, archive digitization / catalog delivery lead..."
+2. **NIGHT TIDE / FUGITIVE VALLEY COMMAND CONFUSION (applied):** Was: "The slip prints the command..." immediately followed by Fugitive Valley URL while Level two is about Night Tide. Now clarifies Night Tide vs worst-title Fugitive Valley.
+3. **DIFFERENTIATION FROM CHECKPRINT (applied):** What's next now says the closed repair loop is Checkprint's verb on this track, not Redslip's.
+4. **KEEP:** Five slots table and 17/20 ledger already excellent; do not rewrite.
+5. **DEFER:** Still no quoted real archive operator; Jordan is a named persona.
 
----
+## Edits applied this pass
+
+3 surgical edits in `projects/vault/docs/STORY.md`.
+
+## Residual risks
+
+- Competing with Checkprint on the same ClickHouse track (explicit in SUBMISSIONS.md).
+- Subtitle checks contribute zero findings on this 20-title catalog (already disclosed).
+
+## Devpost paste
+
+```markdown
+**Elevator pitch:** Redslip is Monday triage for a film archive: ranks failing masters, lanes each BATCH, HUMAN or READY (11/6/3), ranking on 320 rollup rows while forensics stay on 24,017 ClickHouse samples.
 
 ## About the project
 
@@ -542,37 +563,4 @@ ffprobe, Python 3.13, `uv`, FastAPI with server-sent events, pytest, Docker, arc
 as the source catalog, and vanilla HTML and CSS with Newsreader and JetBrains Mono.
 
 ---
-
-## Links
-
-**Live:** https://vault-387894104564.us-central1.run.app
-
-The ledger renders immediately from a deterministic query, so there is nothing to wait
-for on load. Pressing triage runs the ADK crew and streams each agent's SQL as it is
-composed, roughly 70 to 120 seconds end to end. The spread is Gemini latency rather than
-query time.
-
-**Repo:** https://github.com/passionate-dev7/vault (MIT licence, `LICENSE` in the root)
-
-**Reproduce a number without cloning anything:**
-
-```bash
-ffmpeg -hide_banner -nostats -t 120 \
-  -i "https://archive.org/download/fugitive_valley/fugitive_valley_512kb.mp4" \
-  -af ebur128 -f null -
-```
-
-That prints `I: -37.2 LUFS`, 14.2 LU from the EBU R128 target of -23.0, which is the
-figure at the top of the ledger.
-
-**Run it locally:**
-
-```bash
-git clone https://github.com/passionate-dev7/vault
-cd vault
-uv sync
-uv tool install mcp-clickhouse
-uv run python migrate.py
-uv run python ingest.py --limit 20
-bash run_web.sh
 ```
