@@ -235,9 +235,10 @@ Five checks run against every title, giving 100 finding rows:
 
 The decisions land back in the database. `vault.slips` is an append-only log of every
 work order the crew has issued, one row per queued title with its lane, its rationale and
-a flag recording whether each figure was traced to a returned cell. Eleven runs have
-written 124 rows into it, so the queue outlives the browser tab and the next scan can be
-read against the last decision.
+a flag recording whether each figure was traced to a returned cell, so the queue outlives
+the browser tab and the next scan can be read against the last decision. Read back with
+`SELECT count(DISTINCT run_id), count() FROM vault.slips`, it held 11 runs and 124 rows at
+the time this was written.
 
 ### What the ledger will not infer
 
