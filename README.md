@@ -1,6 +1,6 @@
 # Redslip: archive delivery triage
 
-**Track: ClickHouse** | Agentic Cinema: The Blockbuster Hackathon
+**Track: Grafana** | Agentic Cinema: The Blockbuster Hackathon. Partner wiring: `ARCHITECTURE.md`.
 
 Live: https://vault-387894104564.us-central1.run.app
 Repo: https://github.com/passionate-dev7/vault

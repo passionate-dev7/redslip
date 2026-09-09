@@ -1564,7 +1564,7 @@ function workOrderHtml(d) {
       const url = grafanaUrl(g.publish);
       parts.push(`<p class="wo-grafana">Board published${url ? `: <a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>` : "."}</p>`);
     } else {
-      parts.push(`<p class="wo-grafana skipped">Board step skipped${g.reason ? `: ${esc(g.reason)}` : "."} Nothing was published, and nothing here was drawn from it.</p>`);
+      parts.push(`<p class="wo-grafana skipped">Board step skipped${g.reason ? `: ${esc(g.reason)}` : ""}. Nothing was published, and nothing here was drawn from it.</p>`);
     }
   }
 
